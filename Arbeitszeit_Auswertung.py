@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from datetime import datetime
 from collections import defaultdict
 
@@ -21,7 +22,13 @@ def parse_markdown_log(filepath):
         
         parts = [p.strip() for p in line.split('|')][1:-1]
         if len(parts) >= 5:
-            date_str, start, end, category, desc = parts[:5]
+            date_str, start, end, category = parts[:4]
+            desc = parts[4]
+            
+            # Markdown Bilder in HTML <img> Tags umwandeln
+            # Syntax: ![Alt Text](bild_pfad.jpg)
+            desc_html = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', r'<img src="\2" alt="\1" class="log-img">', desc)
+            
             try:
                 t1 = datetime.strptime(start, "%H:%M")
                 t2 = datetime.strptime(end, "%H:%M")
@@ -40,7 +47,7 @@ def parse_markdown_log(filepath):
                     "start": start, "end": end,
                     "start_min": t1.hour * 60 + t1.minute,
                     "end_min": t2.hour * 60 + t2.minute,
-                    "category": category, "desc": desc, "duration": delta_minutes
+                    "category": category, "desc": desc_html, "duration": delta_minutes
                 })
             except ValueError:
                 continue
@@ -80,25 +87,47 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             :root {{ --text-main: #1d1d1f; --text-muted: #86868b; --glass-bg: rgba(255, 255, 255, 0.22); --glass-border: rgba(255, 255, 255, 0.4); }}
             * {{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }}
             html, body {{ height: 100%; margin: 0; padding: 0; }}
-            body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); display: flex; justify-content: center; align-items: center; overflow: hidden; }}
             
-            /* Anpassung für iPhone Notch / Dynamic Island */
+            body {{ 
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; 
+                background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); 
+                background-attachment: fixed; /* Behebt den weißen Balken */
+                display: flex; justify-content: center; align-items: center; 
+                min-height: 100dvh; /* Dynamic Viewport Height verhindert Scroll-Bugs auf iOS */
+            }}
+            
             .glass-panel {{
-                width: 100%; height: 100vh;
+                width: 100%; 
+                height: 100dvh; /* Standard: Vollbild für iPhone */
                 background: var(--glass-bg); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
                 display: flex; flex-direction: column; position: relative; overflow: hidden; 
-                padding: env(safe-area-inset-top) 25px 25px 25px; /* iOS Safe Area */
+                /* Dynamisches Padding um Dynamic Island & Home-Balken zu umgehen */
+                padding: max(env(safe-area-inset-top), 40px) 25px max(env(safe-area-inset-bottom), 20px) 25px; 
+            }}
+            
+            /* Responsive Design für Mac / Desktop */
+            @media (min-width: 550px) {{
+                .glass-panel {{
+                    height: 90vh;
+                    max-width: 480px; 
+                    max-height: 880px;
+                    border-radius: 44px;
+                    border: 1px solid var(--glass-border);
+                    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.12);
+                    padding-top: 30px;
+                    padding-bottom: 25px;
+                }}
             }}
             
             .global-stats {{ text-align: center; margin-bottom: 15px; margin-top: 10px; }}
             .global-hours {{ font-size: 46px; font-weight: 700; letter-spacing: -1.5px; color: var(--text-main); line-height: 1; }}
             .global-label {{ font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.8px; }}
 
-            .segmented-control {{ position: relative; display: flex; background: rgba(0, 0, 0, 0.06); border-radius: 14px; padding: 3px; margin-bottom: 20px; border: 0.5px solid rgba(255, 255, 255, 0.2); }}
+            .segmented-control {{ position: relative; display: flex; background: rgba(0, 0, 0, 0.06); border-radius: 14px; padding: 3px; margin-bottom: 20px; border: 0.5px solid rgba(255, 255, 255, 0.2); flex-shrink: 0; }}
             .control-btn {{ flex: 1; border: none; background: none; padding: 8px 0; font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer; z-index: 2; }}
             .slider-pill {{ position: absolute; top: 3px; left: 3px; width: calc(33.333% - 4px); height: calc(100% - 6px); background: rgba(255, 255, 255, 0.7); box-shadow: 0 3px 8px rgba(0,0,0,0.08); border-radius: 11px; z-index: 1; transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); }}
 
-            .view-container {{ flex: 1; position: relative; width: 100%; }}
+            .view-container {{ flex: 1; position: relative; width: 100%; overflow: hidden; }}
             .main-view {{ position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transform: scale(0.97); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease; }}
             .main-view.active-view {{ opacity: 1; pointer-events: auto; transform: scale(1); }}
 
@@ -109,27 +138,39 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             .cal-cell.empty {{ opacity: 0.15; }}
             .calendar-title {{ font-size: 18px; font-weight: 700; margin-bottom: 12px; padding-left: 5px; color: var(--text-main); }}
 
-            .week-list {{ display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 4px; padding-bottom: 40px; }}
+            .week-list {{ display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 4px; padding-bottom: 20px; }}
             .week-row {{ background: rgba(255, 255, 255, 0.2); padding: 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.2); display: flex; flex-direction: column; gap: 6px; }}
             .week-row-meta {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--text-main); }}
             .timeline-track {{ height: 18px; background: rgba(0, 0, 0, 0.04); border-radius: 6px; position: relative; overflow: hidden; }}
             .timeline-bar {{ position: absolute; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 4px; }}
             .timeline-labels {{ display: flex; justify-content: space-between; font-size: 9px; color: var(--text-muted); padding: 0 2px; }}
 
-            .day-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }}
-            .nav-btn {{ background: rgba(255, 255, 255, 0.3); border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 13px; cursor: pointer; display: flex; justify-content: center; align-items: center; }}
+            .day-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0; }}
+            .nav-btn {{ background: rgba(255, 255, 255, 0.3); border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 13px; cursor: pointer; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }}
             .nav-btn:disabled {{ opacity: 0.2; cursor: default; }}
             .day-date-title {{ font-size: 15px; font-weight: 600; }}
-            .category-bars {{ margin-bottom: 15px; }}
+            .category-bars {{ margin-bottom: 15px; flex-shrink: 0; }}
             .cat-row {{ display: flex; align-items: center; margin-bottom: 8px; }}
             .cat-label {{ width: 80px; font-size: 12px; font-weight: 600; }}
             .bar-bg {{ flex: 1; height: 10px; background: rgba(255, 255, 255, 0.25); border-radius: 5px; overflow: hidden; margin: 0 10px; }}
             .bar-fill {{ height: 100%; background: linear-gradient(90deg, #2575fc 0%, #6a11cb 100%); border-radius: 5px; }}
             .cat-time {{ width: 50px; text-align: right; font-size: 11px; font-weight: 600; }}
-            .entries-list {{ flex: 1; overflow-y: auto; padding-bottom: 40px; }}
-            .entry-card {{ background: rgba(255, 255, 255, 0.35); border-radius: 14px; padding: 12px 15px; margin-bottom: 8px; border: 0.5px solid rgba(255, 255, 255, 0.2); }}
-            .entry-card-header {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 4px; }}
-            .entry-card-desc {{ font-size: 11.5px; color: #2c2c2e; line-height: 1.4; }}
+            
+            .entries-list {{ flex: 1; overflow-y: auto; padding-bottom: 20px; }}
+            .entry-card {{ background: rgba(255, 255, 255, 0.35); border-radius: 14px; padding: 12px 15px; margin-bottom: 10px; border: 0.5px solid rgba(255, 255, 255, 0.2); }}
+            .entry-card-header {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 8px; }}
+            .entry-card-desc {{ font-size: 12px; color: #2c2c2e; line-height: 1.45; }}
+            
+            /* CSS Styling für die injizierten Bilder */
+            .log-img {{
+                max-width: 100%;
+                height: auto;
+                border-radius: 10px;
+                margin-top: 10px;
+                border: 1px solid rgba(255,255,255,0.4);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                display: block;
+            }}
         </style>
     </head>
     <body>
@@ -285,7 +326,7 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
     
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(html_content)
-    print(f"{output_file} für GitHub Pages erstellt!")
+    print(f"{output_file} erfolgreich geupdatet!")
 
 if __name__ == "__main__":
     markdown_file = "arbeitszeit_log.md"
