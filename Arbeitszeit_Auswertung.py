@@ -25,9 +25,14 @@ def parse_markdown_log(filepath):
             date_str, start, end, category = parts[:4]
             desc = parts[4]
             
-            # Markdown Bilder in HTML <img> Tags umwandeln
-            # Syntax: ![Alt Text](bild_pfad.jpg)
-            desc_html = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', r'<img src="\2" alt="\1" class="log-img">', desc)
+            # 1. Bilder rendern
+            desc_html = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', r'<img src="\2" alt="\1" class="log-img" title="Zum Vergrößern klicken">', desc)
+            
+            # 2. Fetten Text (**Text**) in edle Überschriften umwandeln
+            desc_html = re.sub(r'\*\*(.*?)\*\*', r'<strong style="color: var(--text-main); font-size: 12.5px;">\1</strong>', desc_html)
+            
+            # 3. Kursiven Text (*Text*) umwandeln
+            desc_html = re.sub(r'\*(.*?)\*', r'<em>\1</em>', desc_html)
             
             try:
                 t1 = datetime.strptime(start, "%H:%M")
@@ -77,45 +82,53 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
     <html lang="de">
     <head>
         <meta charset="UTF-8">
+        <!-- iOS PWA Meta Tags -->
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="apple-mobile-web-app-title" content="Work Log">
+        <meta name="theme-color" content="#5b9ff9">
         
         <title>Arbeitszeit Cockpit</title>
         <style>
-            :root {{ --text-main: #1d1d1f; --text-muted: #86868b; --glass-bg: rgba(255, 255, 255, 0.22); --glass-border: rgba(255, 255, 255, 0.4); }}
+            :root {{ 
+                --text-main: #1d1d1f; 
+                --text-muted: #6e6e73; 
+                --glass-bg: rgba(255, 255, 255, 0.25);
+                --glass-border: rgba(255, 255, 255, 0.35);
+            }}
+            
             * {{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }}
-            html, body {{ height: 100%; margin: 0; padding: 0; }}
+            
+            html, body {{ 
+                height: 100%; margin: 0; padding: 0; 
+                background-color: #5b9ff9; 
+                overscroll-behavior-y: none; 
+            }}
             
             body {{ 
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; 
-                background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); 
-                background-attachment: fixed; /* Behebt den weißen Balken */
+                background: linear-gradient(135deg, #5b9ff9 0%, #7ee8fa 100%); 
+                background-attachment: fixed;
                 display: flex; justify-content: center; align-items: center; 
-                min-height: 100dvh; /* Dynamic Viewport Height verhindert Scroll-Bugs auf iOS */
+                min-height: 100dvh; 
             }}
             
             .glass-panel {{
-                width: 100%; 
-                height: 100dvh; /* Standard: Vollbild für iPhone */
-                background: var(--glass-bg); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+                width: 100%; height: 100dvh; 
+                background: var(--glass-bg); 
+                backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px);
+                box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+                border: 1px solid var(--glass-border);
                 display: flex; flex-direction: column; position: relative; overflow: hidden; 
-                /* Dynamisches Padding um Dynamic Island & Home-Balken zu umgehen */
                 padding: max(env(safe-area-inset-top), 40px) 25px max(env(safe-area-inset-bottom), 20px) 25px; 
             }}
             
-            /* Responsive Design für Mac / Desktop */
             @media (min-width: 550px) {{
                 .glass-panel {{
-                    height: 90vh;
-                    max-width: 480px; 
-                    max-height: 880px;
+                    height: 90vh; max-width: 480px; max-height: 880px;
                     border-radius: 44px;
-                    border: 1px solid var(--glass-border);
-                    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.12);
-                    padding-top: 30px;
-                    padding-bottom: 25px;
+                    padding-top: 30px; padding-bottom: 25px;
                 }}
             }}
             
@@ -123,59 +136,64 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             .global-hours {{ font-size: 46px; font-weight: 700; letter-spacing: -1.5px; color: var(--text-main); line-height: 1; }}
             .global-label {{ font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.8px; }}
 
-            .segmented-control {{ position: relative; display: flex; background: rgba(0, 0, 0, 0.06); border-radius: 14px; padding: 3px; margin-bottom: 20px; border: 0.5px solid rgba(255, 255, 255, 0.2); flex-shrink: 0; }}
+            .segmented-control {{ position: relative; display: flex; background: rgba(0, 0, 0, 0.05); border-radius: 14px; padding: 3px; margin-bottom: 20px; border: 0.5px solid rgba(255, 255, 255, 0.3); flex-shrink: 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }}
             .control-btn {{ flex: 1; border: none; background: none; padding: 8px 0; font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer; z-index: 2; }}
-            .slider-pill {{ position: absolute; top: 3px; left: 3px; width: calc(33.333% - 4px); height: calc(100% - 6px); background: rgba(255, 255, 255, 0.7); box-shadow: 0 3px 8px rgba(0,0,0,0.08); border-radius: 11px; z-index: 1; transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); }}
+            .slider-pill {{ position: absolute; top: 3px; left: 3px; width: calc(33.333% - 4px); height: calc(100% - 6px); background: rgba(255, 255, 255, 0.95); box-shadow: 0 3px 8px rgba(0,0,0,0.08); border-radius: 11px; z-index: 1; transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); }}
 
             .view-container {{ flex: 1; position: relative; width: 100%; overflow: hidden; }}
             .main-view {{ position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transform: scale(0.97); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease; }}
             .main-view.active-view {{ opacity: 1; pointer-events: auto; transform: scale(1); }}
 
-            .calendar-grid {{ display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; background: rgba(255, 255, 255, 0.15); padding: 15px; border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.2); }}
+            .calendar-grid {{ display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; background: rgba(255, 255, 255, 0.3); padding: 15px; border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 10px 20px rgba(0,0,0,0.02); }}
             .cal-header {{ text-align: center; font-size: 10px; font-weight: 700; color: var(--text-muted); padding-bottom: 5px; }}
             .cal-cell {{ aspect-ratio: 1; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: 500; color: var(--text-main); border-radius: 50%; }}
-            .cal-cell.has-work {{ background: rgba(0, 122, 255, 0.22); border: 1.5px solid rgba(0, 122, 255, 0.4); color: #004999; font-weight: 700; cursor: pointer; }}
+            .cal-cell.has-work {{ background: rgba(37, 117, 252, 0.15); border: 1.5px solid rgba(37, 117, 252, 0.4); color: #004999; font-weight: 700; cursor: pointer; }}
             .cal-cell.empty {{ opacity: 0.15; }}
             .calendar-title {{ font-size: 18px; font-weight: 700; margin-bottom: 12px; padding-left: 5px; color: var(--text-main); }}
 
             .week-list {{ display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 4px; padding-bottom: 20px; }}
-            .week-row {{ background: rgba(255, 255, 255, 0.2); padding: 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.2); display: flex; flex-direction: column; gap: 6px; }}
+            .week-row {{ background: rgba(255, 255, 255, 0.3); padding: 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.4); display: flex; flex-direction: column; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); cursor: pointer; transition: transform 0.15s ease, background 0.15s ease; }}
+            .week-row:active {{ transform: scale(0.97); background: rgba(255, 255, 255, 0.5); }}
             .week-row-meta {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--text-main); }}
             .timeline-track {{ height: 18px; background: rgba(0, 0, 0, 0.04); border-radius: 6px; position: relative; overflow: hidden; }}
             .timeline-bar {{ position: absolute; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 4px; }}
             .timeline-labels {{ display: flex; justify-content: space-between; font-size: 9px; color: var(--text-muted); padding: 0 2px; }}
 
             .day-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0; }}
-            .nav-btn {{ background: rgba(255, 255, 255, 0.3); border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 13px; cursor: pointer; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }}
+            .nav-btn {{ background: rgba(255, 255, 255, 0.45); border: 1px solid rgba(255,255,255,0.5); border-radius: 50%; width: 36px; height: 36px; font-size: 13px; cursor: pointer; display: flex; justify-content: center; align-items: center; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }}
             .nav-btn:disabled {{ opacity: 0.2; cursor: default; }}
             .day-date-title {{ font-size: 15px; font-weight: 600; }}
+            
             .category-bars {{ margin-bottom: 15px; flex-shrink: 0; }}
             .cat-row {{ display: flex; align-items: center; margin-bottom: 8px; }}
             .cat-label {{ width: 80px; font-size: 12px; font-weight: 600; }}
-            .bar-bg {{ flex: 1; height: 10px; background: rgba(255, 255, 255, 0.25); border-radius: 5px; overflow: hidden; margin: 0 10px; }}
+            .bar-bg {{ flex: 1; height: 10px; background: rgba(255, 255, 255, 0.4); border-radius: 5px; overflow: hidden; margin: 0 10px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); }}
             .bar-fill {{ height: 100%; background: linear-gradient(90deg, #2575fc 0%, #6a11cb 100%); border-radius: 5px; }}
             .cat-time {{ width: 50px; text-align: right; font-size: 11px; font-weight: 600; }}
             
             .entries-list {{ flex: 1; overflow-y: auto; padding-bottom: 20px; }}
-            .entry-card {{ background: rgba(255, 255, 255, 0.35); border-radius: 14px; padding: 12px 15px; margin-bottom: 10px; border: 0.5px solid rgba(255, 255, 255, 0.2); }}
+            .entry-card {{ background: rgba(255, 255, 255, 0.45); border-radius: 14px; padding: 12px 15px; margin-bottom: 10px; border: 1px solid rgba(255, 255, 255, 0.5); box-shadow: 0 4px 15px rgba(0,0,0,0.02); }}
             .entry-card-header {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 8px; }}
-            .entry-card-desc {{ font-size: 12px; color: #2c2c2e; line-height: 1.45; }}
             
-            /* CSS Styling für die injizierten Bilder */
-            .log-img {{
-                max-width: 100%;
-                height: auto;
-                border-radius: 10px;
-                margin-top: 10px;
-                border: 1px solid rgba(255,255,255,0.4);
-                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-                display: block;
-            }}
+            /* Text-Styling für Absätze */
+            .entry-card-desc {{ font-size: 12px; color: #2c2c2e; line-height: 1.5; }}
+            
+            .log-img {{ max-width: 100%; height: auto; border-radius: 10px; margin-top: 10px; margin-bottom: 4px; border: 1px solid rgba(255,255,255,0.7); box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: block; cursor: zoom-in; transition: transform 0.2s; }}
+            .log-img:active {{ transform: scale(0.98); }}
+
+            .lightbox {{ display: none; position: fixed; z-index: 9999; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); justify-content: center; align-items: center; opacity: 0; transition: opacity 0.25s ease; }}
+            .lightbox.active {{ opacity: 1; }}
+            .lightbox img {{ max-width: 95vw; max-height: 85vh; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1); }}
+            .lightbox.active img {{ transform: scale(1); }}
         </style>
     </head>
     <body>
 
-    <div class="glass-panel">
+    <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+        <img id="lightbox-img" src="" alt="Vollbild">
+    </div>
+
+    <div class="glass-panel" id="main-panel">
         <div class="global-stats">
             <div class="global-hours" id="render-global-total">{initial_hours_str}</div>
             <div class="global-label" id="stats-label">{initial_label}</div>
@@ -218,6 +236,55 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
         const logData = {json_data};
         const dates = {json_dates};
         let currentDayIndex = dates.length - 1; 
+        let currentActiveView = 'month'; 
+
+        // --- Swipe Logic Setup ---
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+        
+        const mainPanel = document.getElementById('main-panel');
+        
+        mainPanel.addEventListener('touchstart', e => {{
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }}, {{passive: true}});
+
+        mainPanel.addEventListener('touchend', e => {{
+            touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
+            handleSwipe();
+        }}, {{passive: true}});
+
+        function handleSwipe() {{
+            const views = ['month', 'week', 'day'];
+            let currentIndex = views.indexOf(currentActiveView);
+            let deltaX = touchEndX - touchStartX;
+            let deltaY = touchEndY - touchStartY;
+
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {{
+                if (deltaX < 0 && currentIndex < 2) {{
+                    uiSwitchView(views[currentIndex + 1], currentIndex + 1);
+                }} else if (deltaX > 0 && currentIndex > 0) {{
+                    uiSwitchView(views[currentIndex - 1], currentIndex - 1);
+                }}
+            }}
+        }}
+
+        // --- Standard Logic ---
+        function openLightbox(src) {{
+            const lb = document.getElementById('lightbox');
+            document.getElementById('lightbox-img').src = src;
+            lb.style.display = 'flex';
+            setTimeout(() => lb.classList.add('active'), 10);
+        }}
+
+        function closeLightbox() {{
+            const lb = document.getElementById('lightbox');
+            lb.classList.remove('active');
+            setTimeout(() => lb.style.display = 'none', 250);
+        }}
 
         function formatHours(minutes) {{
             const h = Math.floor(minutes / 60);
@@ -258,6 +325,7 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
         }}
 
         function uiSwitchView(viewId, index) {{
+            currentActiveView = viewId;
             document.getElementById('pill').style.transform = "translateX(" + (index * 100) + "%)";
             const views = document.querySelectorAll('.main-view');
             for(let i = 0; i < views.length; i++) views[i].classList.remove('active-view');
@@ -278,6 +346,9 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
                 const dayObj = logData[dateStr];
                 const row = document.createElement('div');
                 row.className = 'week-row';
+                
+                row.onclick = function() {{ forceDayView(dateStr); }};
+                
                 let bars = '';
                 for(let j=0; j<dayObj.entries.length; j++) {{
                     const e = dayObj.entries[j];
@@ -308,6 +379,12 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
                 entriesHtml += `<div class="entry-card"><div class="entry-card-header"><span>${{e.category}}</span><span>${{e.start}} - ${{e.end}}</span></div><div class="entry-card-desc">${{e.desc}}</div></div>`;
             }}
             document.getElementById('day-entries-wrapper').innerHTML = entriesHtml;
+            
+            const images = document.querySelectorAll('.log-img');
+            for(let i=0; i<images.length; i++) {{
+                images[i].onclick = function() {{ openLightbox(this.src); }};
+            }}
+
             document.getElementById('btn-prev').disabled = currentDayIndex === 0;
             document.getElementById('btn-next').disabled = currentDayIndex === dates.length - 1;
         }}
