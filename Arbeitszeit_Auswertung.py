@@ -25,8 +25,13 @@ def parse_markdown_log(filepath):
             date_str, start, end, category = parts[:4]
             desc = parts[4]
             
+            # Markdown Bilder umwandeln und klickbar machen
             desc_html = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', r'<img src="\2" alt="\1" class="log-img" title="Zum Vergrößern klicken">', desc)
+            
+            # Fetten Text (**Text**) in edle Überschriften umwandeln
             desc_html = re.sub(r'\*\*(.*?)\*\*', r'<strong style="color: var(--text-main); font-size: 12.5px;">\1</strong>', desc_html)
+            
+            # Kursiven Text (*Text*) umwandeln
             desc_html = re.sub(r'\*(.*?)\*', r'<em>\1</em>', desc_html)
             
             try:
@@ -81,6 +86,7 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="apple-mobile-web-app-title" content="Work Log">
+        
         <meta name="theme-color" content="#5b9ff9">
         
         <title>Arbeitszeit Cockpit</title>
@@ -94,33 +100,21 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             
             * {{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }}
             
-            /* Tiefe Systemebene sicherheitshalber blau färben */
-            html {{ background-color: #5b9ff9; }}
-            
-            /* DER TRICK: Ein gigantischer Hintergrund, der 200% der Bildschirmgröße einnimmt.
-               Er wird weit nach oben und links verschoben (-50%), sodass er immer alle Ränder abdeckt.
-            */
-            body::before {{
-                content: "";
-                position: fixed;
-                top: -50vh;
-                left: -50vw;
-                width: 200vw;
-                height: 200vh;
-                background: linear-gradient(135deg, #5b9ff9 0%, #7ee8fa 100%);
-                z-index: -10; /* Ganz nach hinten */
+            /* Natürliches Scrollverhalten wiederhergestellt */
+            html {{
+                background-color: #5b9ff9;
             }}
             
             body {{ 
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; 
+                background: linear-gradient(135deg, #5b9ff9 0%, #7ee8fa 100%); 
                 margin: 0; padding: 0; 
-                height: 100dvh; 
-                overflow: hidden; position: fixed; top: 0; left: 0; width: 100%;
+                min-height: 100dvh; 
                 display: flex; justify-content: center; align-items: center; 
             }}
             
             .glass-panel {{
-                width: 100%; height: 100%; 
+                width: 100%; height: 100dvh; 
                 background: var(--glass-bg); 
                 backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px);
                 box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
@@ -140,6 +134,7 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             .global-hours {{ font-size: 46px; font-weight: 700; letter-spacing: -1.5px; color: var(--text-main); line-height: 1; }}
             .global-label {{ font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.8px; }}
 
+            /* SCHIEBER */
             .segmented-control {{ 
                 position: relative; display: flex; background: rgba(0, 0, 0, 0.05); 
                 border-radius: 14px; padding: 3px; margin-bottom: 20px; 
@@ -187,6 +182,11 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             .nav-btn:disabled {{ opacity: 0.2; cursor: default; }}
             .day-date-title {{ font-size: 15px; font-weight: 600; }}
             
+            /* Container für die weiche Wisch-Animation der Tagesansicht */
+            #day-content-animator {{
+                flex: 1; display: flex; flex-direction: column; overflow: hidden;
+            }}
+
             .category-bars {{ margin-bottom: 15px; flex-shrink: 0; }}
             .cat-row {{ display: flex; align-items: center; margin-bottom: 8px; }}
             .cat-label {{ width: 80px; font-size: 12px; font-weight: 600; }}
@@ -246,8 +246,11 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
                     <div class="day-date-title" id="day-title">Datum</div>
                     <button class="nav-btn" id="btn-next" onclick="changeDay(1)">&#10095;</button>
                 </div>
-                <div id="day-categories-wrapper"></div>
-                <div class="entries-list" id="day-entries-wrapper"></div>
+                
+                <div id="day-content-animator">
+                    <div id="day-categories-wrapper"></div>
+                    <div class="entries-list" id="day-entries-wrapper"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -323,6 +326,32 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             }}
         }});
 
+        // --- WISCH-GESTEN FÜR DIE TAGESANSICHT ---
+        const dayAnimator = document.getElementById('day-content-animator');
+        let swipeStartX = 0;
+        let swipeStartY = 0;
+
+        dayAnimator.addEventListener('touchstart', (e) => {{
+            swipeStartX = e.touches[0].clientX;
+            swipeStartY = e.touches[0].clientY;
+        }}, {{ passive: true }});
+
+        dayAnimator.addEventListener('touchend', (e) => {{
+            const swipeEndX = e.changedTouches[0].clientX;
+            const swipeEndY = e.changedTouches[0].clientY;
+            
+            const deltaX = swipeEndX - swipeStartX;
+            const deltaY = swipeEndY - swipeStartY;
+            
+            // Nur reagieren, wenn horizontal gewischt wurde (nicht beim vertikalen Scrollen)
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 40) {{
+                if (deltaX < 0 && currentDayIndex < dates.length - 1) {{
+                    changeDay(1); // Wisch nach links -> Nächster Tag
+                }} else if (deltaX > 0 && currentDayIndex > 0) {{
+                    changeDay(-1); // Wisch nach rechts -> Vorheriger Tag
+                }}
+            }}
+        }}, {{ passive: true }});
 
         // --- UI & UPDATES ---
         function uiSwitchView(viewId, index) {{
@@ -447,7 +476,28 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
 
         function changeDay(dir) {{
             let nextIdx = currentDayIndex + dir;
-            if(nextIdx >= 0 && nextIdx < dates.length) {{ currentDayIndex = nextIdx; renderDayView(); updateDynamicCounter('day'); }}
+            if(nextIdx >= 0 && nextIdx < dates.length) {{ 
+                currentDayIndex = nextIdx;
+                
+                // --- SMOOTHE WECHSEL-ANIMATION ---
+                const animator = document.getElementById('day-content-animator');
+                
+                // Setze auf transparent und schiebe in die Richtung des Wischens
+                animator.style.transition = 'none';
+                animator.style.opacity = '0';
+                animator.style.transform = dir > 0 ? 'translateX(30px)' : 'translateX(-30px)';
+                
+                // Kleiner Timer, damit der Browser die Änderungen oben anwendet, bevor er animiert
+                setTimeout(() => {{
+                    renderDayView();
+                    updateDynamicCounter('day');
+                    
+                    // Weich hereingleiten lassen
+                    animator.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease';
+                    animator.style.transform = 'translateX(0)';
+                    animator.style.opacity = '1';
+                }}, 20);
+            }}
         }}
 
         initWeekTimeline();
