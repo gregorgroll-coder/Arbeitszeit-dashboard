@@ -25,13 +25,8 @@ def parse_markdown_log(filepath):
             date_str, start, end, category = parts[:4]
             desc = parts[4]
             
-            # Markdown Bilder umwandeln und klickbar machen
             desc_html = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', r'<img src="\2" alt="\1" class="log-img" title="Zum Vergrößern klicken">', desc)
-            
-            # Fetten Text (**Text**) in edle Überschriften umwandeln
             desc_html = re.sub(r'\*\*(.*?)\*\*', r'<strong style="color: var(--text-main); font-size: 12.5px;">\1</strong>', desc_html)
-            
-            # Kursiven Text (*Text*) umwandeln
             desc_html = re.sub(r'\*(.*?)\*', r'<em>\1</em>', desc_html)
             
             try:
@@ -86,7 +81,6 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="apple-mobile-web-app-title" content="Work Log">
-        
         <meta name="theme-color" content="#5b9ff9">
         
         <title>Arbeitszeit Cockpit</title>
@@ -100,20 +94,14 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             
             * {{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }}
             
-            /* --- iOS SAFE AREA & BODY LOCK FIX --- */
-            html {{
-                height: -webkit-fill-available;
-            }}
+            html {{ background-color: #5b9ff9; height: -webkit-fill-available; }}
             
             body {{ 
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; 
                 background: linear-gradient(135deg, #5b9ff9 0%, #7ee8fa 100%); 
-                min-height: 100vh;
-                min-height: -webkit-fill-available;
                 margin: 0; padding: 0; 
-                overflow: hidden; /* Verhindert das Wackeln des gesamten Bildschirms */
-                position: fixed; /* Sperrt den Hintergrund extrem fest, Apple kann hier keine Ränder mehr zeichnen */
-                top: 0; left: 0; width: 100%;
+                height: 100dvh; min-height: -webkit-fill-available;
+                overflow: hidden; position: fixed; top: 0; left: 0; width: 100%;
                 display: flex; justify-content: center; align-items: center; 
             }}
             
@@ -124,15 +112,13 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
                 box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
                 border: 1px solid var(--glass-border);
                 display: flex; flex-direction: column; position: relative; overflow: hidden; 
-                /* Dynamisches Padding um oben die Notch und unten den Home-Balken weich zu umgehen */
                 padding: max(env(safe-area-inset-top), 40px) 25px max(env(safe-area-inset-bottom), 20px) 25px; 
             }}
             
             @media (min-width: 550px) {{
                 .glass-panel {{
                     height: 90vh; max-width: 480px; max-height: 880px;
-                    border-radius: 44px;
-                    padding-top: 30px; padding-bottom: 25px;
+                    border-radius: 44px; padding-top: 30px; padding-bottom: 25px;
                 }}
             }}
             
@@ -140,28 +126,36 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             .global-hours {{ font-size: 46px; font-weight: 700; letter-spacing: -1.5px; color: var(--text-main); line-height: 1; }}
             .global-label {{ font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.8px; }}
 
-            .segmented-control {{ position: relative; display: flex; background: rgba(0, 0, 0, 0.05); border-radius: 14px; padding: 3px; margin-bottom: 20px; border: 0.5px solid rgba(255, 255, 255, 0.3); flex-shrink: 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }}
-            .control-btn {{ flex: 1; border: none; background: none; padding: 8px 0; font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer; z-index: 2; }}
-            
-            /* Der Slider reagiert jetzt nicht mehr auf CSS-Transitions beim Wischen, da JS in Echtzeit trackt */
-            .slider-pill {{ position: absolute; top: 3px; left: 3px; width: calc(33.333% - 4px); height: calc(100% - 6px); background: rgba(255, 255, 255, 0.95); box-shadow: 0 3px 8px rgba(0,0,0,0.08); border-radius: 11px; z-index: 1; }}
-            .slider-pill.smooth-snap {{ transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); }}
+            /* SCHIEBER STYLING FIX */
+            .segmented-control {{ 
+                position: relative; display: flex; background: rgba(0, 0, 0, 0.05); 
+                border-radius: 14px; padding: 3px; margin-bottom: 20px; 
+                border: 0.5px solid rgba(255, 255, 255, 0.3); flex-shrink: 0; 
+                box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+                touch-action: none; /* Blockiert Safari Gesten, damit wir selbst sliden können */
+                cursor: pointer;
+            }}
+            .control-btn {{ 
+                flex: 1; border: none; background: none; padding: 8px 0; font-size: 13px; font-weight: 600; color: var(--text-main); 
+                pointer-events: none; /* Klicks und Touch fallen auf den dahinterliegenden Container durch */
+                z-index: 2; 
+            }}
+            .slider-pill {{ 
+                position: absolute; top: 3px; left: 3px; width: calc(33.333% - 4px); height: calc(100% - 6px); 
+                background: rgba(255, 255, 255, 0.95); box-shadow: 0 3px 8px rgba(0,0,0,0.08); 
+                border-radius: 11px; z-index: 1; 
+                transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); 
+            }}
 
-            /* --- STUFENLOSES SWIPE & SCROLL DESIGN --- */
-            .view-container {{ 
-                flex: 1; position: relative; width: 100%; 
-                display: flex; overflow-x: auto; overflow-y: hidden; 
-                scroll-snap-type: x mandatory; /* Zieht die Ansicht magnetisch auf die aktuelle Seite */
-                scroll-behavior: auto; /* Wird bei Buttons über JS gesteuert */
-                scrollbar-width: none; -webkit-overflow-scrolling: touch; 
-            }}
-            .view-container::-webkit-scrollbar {{ display: none; }}
-            
+            .view-container {{ flex: 1; position: relative; width: 100%; overflow: hidden; }}
             .main-view {{ 
-                min-width: 100%; height: 100%; 
-                scroll-snap-align: center; /* Magnet-Punkt */
-                display: flex; flex-direction: column; overflow: hidden;
+                position: absolute; width: 100%; height: 100%; top: 0; left: 0; 
+                display: flex; flex-direction: column; opacity: 0; pointer-events: none; 
+                transform: scale(0.97); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease; 
             }}
+            .main-view.active-view {{ opacity: 1; pointer-events: auto; transform: scale(1); }}
+
+            .entries-list, .week-list {{ flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 30px; }}
 
             .calendar-grid {{ display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; background: rgba(255, 255, 255, 0.3); padding: 15px; border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 10px 20px rgba(0,0,0,0.02); }}
             .cal-header {{ text-align: center; font-size: 10px; font-weight: 700; color: var(--text-muted); padding-bottom: 5px; }}
@@ -170,8 +164,7 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             .cal-cell.empty {{ opacity: 0.15; }}
             .calendar-title {{ font-size: 18px; font-weight: 700; margin-bottom: 12px; padding-left: 5px; color: var(--text-main); }}
 
-            .week-list {{ display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 4px; padding-bottom: 40px; overscroll-behavior-y: contain; }}
-            .week-row {{ background: rgba(255, 255, 255, 0.3); padding: 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.4); display: flex; flex-direction: column; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); cursor: pointer; transition: transform 0.15s ease, background 0.15s ease; }}
+            .week-row {{ background: rgba(255, 255, 255, 0.3); padding: 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.4); display: flex; flex-direction: column; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); cursor: pointer; transition: transform 0.15s ease, background 0.15s ease; margin-bottom: 12px; }}
             .week-row:active {{ transform: scale(0.97); background: rgba(255, 255, 255, 0.5); }}
             .week-row-meta {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--text-main); }}
             .timeline-track {{ height: 18px; background: rgba(0, 0, 0, 0.04); border-radius: 6px; position: relative; overflow: hidden; }}
@@ -190,7 +183,6 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             .bar-fill {{ height: 100%; background: linear-gradient(90deg, #2575fc 0%, #6a11cb 100%); border-radius: 5px; }}
             .cat-time {{ width: 50px; text-align: right; font-size: 11px; font-weight: 600; }}
             
-            .entries-list {{ flex: 1; overflow-y: auto; padding-bottom: 40px; overscroll-behavior-y: contain; }}
             .entry-card {{ background: rgba(255, 255, 255, 0.45); border-radius: 14px; padding: 12px 15px; margin-bottom: 10px; border: 1px solid rgba(255, 255, 255, 0.5); box-shadow: 0 4px 15px rgba(0,0,0,0.02); }}
             .entry-card-header {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 8px; }}
             .entry-card-desc {{ font-size: 12px; color: #2c2c2e; line-height: 1.5; }}
@@ -216,15 +208,15 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             <div class="global-label" id="stats-label">{initial_label}</div>
         </div>
 
-        <div class="segmented-control">
-            <div class="slider-pill smooth-snap" id="pill"></div>
-            <button class="control-btn" onclick="uiSwitchView('month', 0)">Monat</button>
-            <button class="control-btn" onclick="uiSwitchView('week', 1)">Woche</button>
-            <button class="control-btn" onclick="uiSwitchView('day', 2)">Tag</button>
+        <div class="segmented-control" id="seg-control">
+            <div class="slider-pill" id="pill"></div>
+            <button class="control-btn">Monat</button>
+            <button class="control-btn">Woche</button>
+            <button class="control-btn">Tag</button>
         </div>
 
-        <div class="view-container" id="view-container">
-            <div class="main-view" id="view-month">
+        <div class="view-container">
+            <div class="main-view active-view" id="view-month">
                 <div class="calendar-title">Juli 2026</div>
                 <div class="calendar-grid" id="calendar-wrapper">
                     <div class="cal-header">MO</div><div class="cal-header">DI</div><div class="cal-header">MI</div>
@@ -256,64 +248,90 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
         
         const views = ['month', 'week', 'day'];
         let currentActiveView = 'month'; 
-        
-        const viewContainer = document.getElementById('view-container');
+        let currentIndex = 0;
+
+        const segControl = document.getElementById('seg-control');
         const pill = document.getElementById('pill');
+        
+        // --- DRAG & DROP LOGIK FÜR DIE PILLE ---
+        let isDragging = false;
+        let startTouchX = 0;
+        let initialPercent = 0;
 
-        // --- STUFENLOSER SCHIEBER (Scroll Sync) ---
-        // Wenn man wischt, wird die Position des Schiebers in Echtzeit relativ zur Fingerbewegung berechnet
-        viewContainer.addEventListener('scroll', () => {{
-            const width = viewContainer.clientWidth;
-            if(width === 0) return;
+        segControl.addEventListener('touchstart', (e) => {{
+            isDragging = true;
+            startTouchX = e.touches[0].clientX;
+            initialPercent = currentIndex * 100;
             
-            // fraction ist 0.0 (Monat), 1.0 (Woche) oder 2.0 (Tag)
-            const fraction = viewContainer.scrollLeft / width;
+            // CSS Animation kurz abschalten, damit Pille direkt am Finger klebt
+            pill.style.transition = 'none';
+        }}, {{ passive: false }});
+
+        segControl.addEventListener('touchmove', (e) => {{
+            if (!isDragging) return;
+            e.preventDefault(); 
             
-            // Schieber wandert exakt mit
-            pill.style.transform = `translateX(${{fraction * 100}}%)`;
+            const deltaX = e.touches[0].clientX - startTouchX;
+            const deltaPercent = (deltaX / pill.offsetWidth) * 100;
+            let newPercent = initialPercent + deltaPercent;
             
-            // Ermittle, welche Ansicht gerade dominant ist
-            const activeIndex = Math.round(fraction);
-            if (currentActiveView !== views[activeIndex]) {{
-                currentActiveView = views[activeIndex];
-                updateDynamicCounter(currentActiveView);
+            // Begrenzungen (0% = Monat, 100% = Woche, 200% = Tag)
+            if (newPercent < 0) newPercent = 0;
+            if (newPercent > 200) newPercent = 200;
+            
+            pill.style.transform = `translateX(${{newPercent}}%)`;
+        }}, {{ passive: false }});
+
+        segControl.addEventListener('touchend', (e) => {{
+            if (!isDragging) return;
+            isDragging = false;
+            
+            // CSS Animation wieder an für weiches Einrasten
+            pill.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
+            
+            const deltaX = e.changedTouches[0].clientX - startTouchX;
+            
+            // Wenn man nur angetippt hat (< 5px Bewegung), greift der reguläre Klick
+            if (Math.abs(deltaX) < 5) {{
+                pill.style.transform = `translateX(${{currentIndex * 100}}%)`;
+                return;
             }}
-        }}, {{ passive: true }});
+            
+            const deltaPercent = (deltaX / pill.offsetWidth) * 100;
+            let newPercent = initialPercent + deltaPercent;
+            let newIndex = Math.round(newPercent / 100);
+            
+            if (newIndex < 0) newIndex = 0;
+            if (newIndex > 2) newIndex = 2;
+            
+            uiSwitchView(views[newIndex], newIndex);
+        }});
 
-        // --- BUTTON KLICKS ---
+        // Klick-/Tipp-Erkennung auf die restliche Fläche
+        segControl.addEventListener('click', (e) => {{
+            const rect = segControl.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const tabWidth = rect.width / 3;
+            let newIndex = Math.floor(clickX / tabWidth);
+            
+            if(newIndex >= 0 && newIndex <= 2) {{
+                uiSwitchView(views[newIndex], newIndex);
+            }}
+        }});
+
+
+        // --- UI & UPDATES ---
         function uiSwitchView(viewId, index) {{
-            // Aktiviert das butterweiche CSS-Snapping beim Button-Klick
-            viewContainer.scrollTo({{
-                left: index * viewContainer.clientWidth,
-                behavior: 'smooth'
-            }});
-        }}
-
-        function openLightbox(src) {{
-            const lb = document.getElementById('lightbox');
-            document.getElementById('lightbox-img').src = src;
-            lb.style.display = 'flex';
-            setTimeout(() => lb.classList.add('active'), 10);
-        }}
-
-        function closeLightbox() {{
-            const lb = document.getElementById('lightbox');
-            lb.classList.remove('active');
-            setTimeout(() => lb.style.display = 'none', 250);
-        }}
-
-        function formatHours(minutes) {{
-            const h = Math.floor(minutes / 60);
-            const m = Math.round(minutes % 60);
-            return h + "h " + m + "m";
-        }}
-
-        function formatDayDate(dateString) {{
-            const parts = dateString.split('-');
-            const d = new Date(parts[0], parts[1] - 1, parts[2]);
-            const days = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'];
-            const months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-            return days[d.getDay()] + " " + parts[2] + ". " + months[d.getMonth()];
+            currentActiveView = viewId;
+            currentIndex = index;
+            pill.style.transform = `translateX(${{index * 100}}%)`;
+            
+            const viewsElements = document.querySelectorAll('.main-view');
+            for(let i = 0; i < viewsElements.length; i++) {{
+                viewsElements[i].classList.remove('active-view');
+            }}
+            document.getElementById(`view-${{viewId}}`).classList.add('active-view');
+            updateDynamicCounter(viewId);
         }}
 
         function updateDynamicCounter(viewId) {{
@@ -344,6 +362,33 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             currentDayIndex = dates.indexOf(dateStr);
             renderDayView();
             uiSwitchView('day', 2);
+        }}
+
+        function formatHours(minutes) {{
+            const h = Math.floor(minutes / 60);
+            const m = Math.round(minutes % 60);
+            return h + "h " + m + "m";
+        }}
+
+        function formatDayDate(dateString) {{
+            const parts = dateString.split('-');
+            const d = new Date(parts[0], parts[1] - 1, parts[2]);
+            const days = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'];
+            const months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+            return days[d.getDay()] + " " + parts[2] + ". " + months[d.getMonth()];
+        }}
+
+        function openLightbox(src) {{
+            const lb = document.getElementById('lightbox');
+            document.getElementById('lightbox-img').src = src;
+            lb.style.display = 'flex';
+            setTimeout(() => lb.classList.add('active'), 10);
+        }}
+
+        function closeLightbox() {{
+            const lb = document.getElementById('lightbox');
+            lb.classList.remove('active');
+            setTimeout(() => lb.style.display = 'none', 250);
         }}
 
         function initWeekTimeline() {{
