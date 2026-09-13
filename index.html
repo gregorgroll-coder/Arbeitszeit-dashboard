@@ -8,68 +8,108 @@
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="apple-mobile-web-app-title" content="Work Log">
         
-        <meta name="theme-color" content="#5b9ff9">
-        
         <title>Arbeitszeit Cockpit</title>
         <style>
             :root { 
-                --text-main: #1d1d1f; 
-                --text-muted: #6e6e73; 
-                --glass-bg: rgba(255, 255, 255, 0.25);
-                --glass-border: rgba(255, 255, 255, 0.35);
+                --text-main: #0c0d0e; 
+                --text-muted: #56585d; 
+                
+                /* Echte Apple Glassmorphism Farbwerte */
+                --glass-panel-bg: rgba(255, 255, 255, 0.42);
+                --glass-card-bg: rgba(255, 255, 255, 0.38);
+                --glass-border-light: rgba(255, 255, 255, 0.7);
+                --glass-border-subtle: rgba(255, 255, 255, 0.4);
+                --apple-blue: #0071e3;
             }
             
             * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
             
-            /* Natürliches Scrollverhalten wiederhergestellt */
-            html {
-                background-color: #5b9ff9;
+            html, body {
+                margin: 0; padding: 0;
+                min-height: 100dvh;
+                font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+                background-color: #0b1329;
+                display: flex; justify-content: center; align-items: center;
+                overflow-x: hidden;
             }
-            
-            body { 
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; 
-                background: linear-gradient(135deg, #5b9ff9 0%, #7ee8fa 100%); 
-                margin: 0; padding: 0; 
-                min-height: 100dvh; 
-                display: flex; justify-content: center; align-items: center; 
+
+            /* --- VIVID APPLE AMBIENT BACKGROUND GLOW --- */
+            /* Diese diffusen Lichtquellen brechen sich im Glaspanel */
+            .ambient-background {
+                position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                z-index: 0; overflow: hidden; pointer-events: none;
             }
-            
+            .glow-orb {
+                position: absolute; border-radius: 50%; filter: blur(75px); opacity: 0.7;
+                animation: floatOrb 18s ease-in-out infinite alternate;
+            }
+            .orb-1 { width: 340px; height: 340px; background: #38bdf8; top: -50px; left: -80px; }
+            .orb-2 { width: 380px; height: 380px; background: #6366f1; bottom: -60px; right: -70px; animation-duration: 22s; }
+            .orb-3 { width: 280px; height: 280px; background: #a855f7; top: 35%; left: 25%; opacity: 0.45; }
+
+            @keyframes floatOrb {
+                0% { transform: translate(0, 0) scale(1); }
+                50% { transform: translate(30px, 40px) scale(1.08); }
+                100% { transform: translate(-20px, 25px) scale(0.95); }
+            }
+
+            /* --- APPLE LIQUID GLASS PANEL --- */
             .glass-panel {
                 width: 100%; height: 100dvh; 
-                background: var(--glass-bg); 
-                backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px);
-                box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
-                border: 1px solid var(--glass-border);
+                background: var(--glass-panel-bg); 
+                /* Die magische Apple-Kombination: starker Blur + hohe Farbsättigung */
+                backdrop-filter: blur(40px) saturate(190%) contrast(102%) brightness(104%);
+                -webkit-backdrop-filter: blur(40px) saturate(190%) contrast(102%) brightness(104%);
+                
+                /* Lichtbrechende Kanten (Oben weißes Highlight, unten feiner Schatten) */
+                border: 1px solid var(--glass-border-subtle);
+                box-shadow: 
+                    0 25px 50px rgba(0, 0, 0, 0.2),
+                    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.75),
+                    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.05);
+
                 display: flex; flex-direction: column; position: relative; overflow: hidden; 
-                padding: max(env(safe-area-inset-top), 40px) 25px max(env(safe-area-inset-bottom), 20px) 25px; 
+                padding: max(env(safe-area-inset-top), 35px) 22px max(env(safe-area-inset-bottom), 20px) 22px; 
+                z-index: 1;
             }
             
             @media (min-width: 550px) {
                 .glass-panel {
-                    height: 90vh; max-width: 480px; max-height: 880px;
-                    border-radius: 44px; padding-top: 30px; padding-bottom: 25px;
+                    height: 92vh; max-width: 460px; max-height: 890px;
+                    border-radius: 46px; padding: 30px 24px;
                 }
             }
             
-            .global-stats { text-align: center; margin-bottom: 15px; margin-top: 10px; flex-shrink: 0; }
-            .global-hours { font-size: 46px; font-weight: 700; letter-spacing: -1.5px; color: var(--text-main); line-height: 1; }
-            .global-label { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.8px; }
+            /* DYNAMISCHE KOPFZEILE */
+            .global-stats { text-align: center; margin-bottom: 16px; margin-top: 5px; flex-shrink: 0; }
+            .global-hours { 
+                font-size: 48px; font-weight: 700; letter-spacing: -1.8px; 
+                color: var(--text-main); line-height: 1; 
+                transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+            }
+            .global-label { 
+                font-size: 11.5px; color: var(--text-muted); font-weight: 600; 
+                margin-top: 8px; text-transform: uppercase; letter-spacing: 0.9px; 
+            }
 
-            /* SCHIEBER */
+            /* SEGMENTED CONTROL (SCHIEBER) */
             .segmented-control { 
-                position: relative; display: flex; background: rgba(0, 0, 0, 0.05); 
-                border-radius: 14px; padding: 3px; margin-bottom: 20px; 
-                border: 0.5px solid rgba(255, 255, 255, 0.3); flex-shrink: 0; 
-                box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+                position: relative; display: flex; 
+                background: rgba(0, 0, 0, 0.06); 
+                border-radius: 14px; padding: 3px; margin-bottom: 18px; 
+                border: 1px solid rgba(255, 255, 255, 0.35); flex-shrink: 0; 
+                box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
                 touch-action: none; cursor: pointer;
             }
             .control-btn { 
-                flex: 1; border: none; background: none; padding: 8px 0; font-size: 13px; font-weight: 600; color: var(--text-main); 
+                flex: 1; border: none; background: none; padding: 8px 0; 
+                font-size: 13px; font-weight: 600; color: var(--text-main); 
                 pointer-events: none; z-index: 2; 
             }
             .slider-pill { 
                 position: absolute; top: 3px; left: 3px; width: calc(33.333% - 4px); height: calc(100% - 6px); 
-                background: rgba(255, 255, 255, 0.95); box-shadow: 0 3px 8px rgba(0,0,0,0.08); 
+                background: rgba(255, 255, 255, 0.92); 
+                box-shadow: 0 3px 10px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06); 
                 border-radius: 11px; z-index: 1; 
                 transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); 
             }
@@ -82,53 +122,122 @@
             }
             .main-view.active-view { opacity: 1; pointer-events: auto; transform: scale(1); }
 
-            .entries-list, .week-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 30px; }
-
-            .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; background: rgba(255, 255, 255, 0.3); padding: 15px; border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 10px 20px rgba(0,0,0,0.02); }
-            .cal-header { text-align: center; font-size: 10px; font-weight: 700; color: var(--text-muted); padding-bottom: 5px; }
-            .cal-cell { aspect-ratio: 1; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: 500; color: var(--text-main); border-radius: 50%; }
-            .cal-cell.has-work { background: rgba(37, 117, 252, 0.15); border: 1.5px solid rgba(37, 117, 252, 0.4); color: #004999; font-weight: 700; cursor: pointer; }
-            .cal-cell.empty { opacity: 0.15; }
-            .calendar-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; padding-left: 5px; color: var(--text-main); }
-
-            .week-row { background: rgba(255, 255, 255, 0.3); padding: 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.4); display: flex; flex-direction: column; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); cursor: pointer; transition: transform 0.15s ease, background 0.15s ease; margin-bottom: 12px; }
-            .week-row:active { transform: scale(0.97); background: rgba(255, 255, 255, 0.5); }
-            .week-row-meta { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--text-main); }
-            .timeline-track { height: 18px; background: rgba(0, 0, 0, 0.04); border-radius: 6px; position: relative; overflow: hidden; }
-            .timeline-bar { position: absolute; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 4px; }
-            .timeline-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-muted); padding: 0 2px; }
-
-            .day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0; }
-            .nav-btn { background: rgba(255, 255, 255, 0.45); border: 1px solid rgba(255,255,255,0.5); border-radius: 50%; width: 36px; height: 36px; font-size: 13px; cursor: pointer; display: flex; justify-content: center; align-items: center; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
-            .nav-btn:disabled { opacity: 0.2; cursor: default; }
-            .day-date-title { font-size: 15px; font-weight: 600; }
-            
-            /* Container für die weiche Wisch-Animation der Tagesansicht */
-            #day-content-animator {
-                flex: 1; display: flex; flex-direction: column; overflow: hidden;
+            /* --- DYNAMISCHE MONATS-CONTAINER (VERTIKAL WISCHBAR) --- */
+            .month-scroll-container {
+                flex: 1; overflow-y: auto; overflow-x: hidden;
+                -webkit-overflow-scrolling: touch;
+                scroll-snap-type: y mandatory;
+                padding-bottom: 40px;
+                display: flex; flex-direction: column; gap: 24px;
             }
+            /* Dünne, unauffällige Scrollbar */
+            .month-scroll-container::-webkit-scrollbar { width: 4px; }
+            .month-scroll-container::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+
+            .month-card {
+                scroll-snap-align: center;
+                flex-shrink: 0;
+                background: var(--glass-card-bg);
+                border-radius: 24px;
+                padding: 16px;
+                border: 1px solid var(--glass-border-light);
+                box-shadow: 
+                    0 8px 24px rgba(0,0,0,0.04),
+                    inset 0 1px 1px rgba(255, 255, 255, 0.7);
+            }
+            .month-header-row {
+                display: flex; justify-content: space-between; align-items: baseline;
+                margin-bottom: 12px; padding: 0 4px;
+            }
+            .month-title { font-size: 17px; font-weight: 700; color: var(--text-main); }
+            .month-subtotal { font-size: 13px; font-weight: 600; color: var(--apple-blue); }
+
+            .calendar-grid { 
+                display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; 
+            }
+            .cal-header { 
+                text-align: center; font-size: 10px; font-weight: 700; color: var(--text-muted); padding-bottom: 6px; 
+            }
+            .cal-cell { 
+                aspect-ratio: 1; display: flex; justify-content: center; align-items: center; 
+                font-size: 13.5px; font-weight: 500; color: var(--text-main); border-radius: 50%; 
+                transition: transform 0.15s ease, background 0.15s ease;
+            }
+            .cal-cell.has-work { 
+                background: rgba(0, 113, 227, 0.16); 
+                border: 1.5px solid rgba(0, 113, 227, 0.5); 
+                color: var(--apple-blue); font-weight: 700; cursor: pointer; 
+                box-shadow: 0 2px 6px rgba(0, 113, 227, 0.12);
+            }
+            .cal-cell.has-work:active { transform: scale(0.88); background: rgba(0, 113, 227, 0.3); }
+            .cal-cell.empty { opacity: 0; pointer-events: none; }
+
+            /* WOCHEN-ANSICHT */
+            .week-list, .entries-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 30px; }
+            .week-row { 
+                background: var(--glass-card-bg); padding: 12px 14px; border-radius: 18px; 
+                border: 1px solid var(--glass-border-light); display: flex; flex-direction: column; gap: 6px; 
+                box-shadow: 0 4px 12px rgba(0,0,0,0.03), inset 0 1px 1px rgba(255,255,255,0.6); 
+                cursor: pointer; transition: transform 0.15s ease; margin-bottom: 10px; 
+            }
+            .week-row:active { transform: scale(0.97); }
+            .week-row-meta { display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; color: var(--text-main); }
+            .timeline-track { height: 16px; background: rgba(0, 0, 0, 0.05); border-radius: 6px; position: relative; overflow: hidden; }
+            .timeline-bar { position: absolute; height: 100%; background: linear-gradient(90deg, #0071e3 0%, #4facfe 100%); border-radius: 4px; }
+
+            /* TAGES-ANSICHT */
+            .day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0; }
+            .nav-btn { 
+                background: rgba(255, 255, 255, 0.5); border: 1px solid var(--glass-border-light); 
+                border-radius: 50%; width: 36px; height: 36px; font-size: 13px; cursor: pointer; 
+                display: flex; justify-content: center; align-items: center; flex-shrink: 0; 
+                box-shadow: 0 2px 6px rgba(0,0,0,0.04); transition: transform 0.1s ease;
+            }
+            .nav-btn:active { transform: scale(0.9); }
+            .nav-btn:disabled { opacity: 0.25; cursor: default; }
+            .day-date-title { font-size: 15px; font-weight: 700; color: var(--text-main); }
+            
+            #day-content-animator { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
             .category-bars { margin-bottom: 15px; flex-shrink: 0; }
             .cat-row { display: flex; align-items: center; margin-bottom: 8px; }
-            .cat-label { width: 80px; font-size: 12px; font-weight: 600; }
-            .bar-bg { flex: 1; height: 10px; background: rgba(255, 255, 255, 0.4); border-radius: 5px; overflow: hidden; margin: 0 10px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); }
-            .bar-fill { height: 100%; background: linear-gradient(90deg, #2575fc 0%, #6a11cb 100%); border-radius: 5px; }
-            .cat-time { width: 50px; text-align: right; font-size: 11px; font-weight: 600; }
+            .cat-label { width: 85px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+            .bar-bg { flex: 1; height: 9px; background: rgba(0, 0, 0, 0.06); border-radius: 5px; overflow: hidden; margin: 0 10px; }
+            .bar-fill { height: 100%; background: linear-gradient(90deg, #0071e3 0%, #6366f1 100%); border-radius: 5px; }
+            .cat-time { width: 50px; text-align: right; font-size: 11.5px; font-weight: 700; color: var(--text-main); }
             
-            .entry-card { background: rgba(255, 255, 255, 0.45); border-radius: 14px; padding: 12px 15px; margin-bottom: 10px; border: 1px solid rgba(255, 255, 255, 0.5); box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
-            .entry-card-header { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 8px; }
-            .entry-card-desc { font-size: 12px; color: #2c2c2e; line-height: 1.5; }
+            .entry-card { 
+                background: var(--glass-card-bg); border-radius: 16px; padding: 13px 15px; 
+                margin-bottom: 10px; border: 1px solid var(--glass-border-light); 
+                box-shadow: 0 4px 14px rgba(0,0,0,0.03), inset 0 1px 1px rgba(255,255,255,0.7); 
+            }
+            .entry-card-header { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--apple-blue); }
+            .entry-card-desc { font-size: 12.5px; color: var(--text-main); line-height: 1.5; }
             
-            .log-img { max-width: 100%; height: auto; border-radius: 10px; margin-top: 10px; margin-bottom: 4px; border: 1px solid rgba(255,255,255,0.7); box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: block; cursor: zoom-in; transition: transform 0.2s; }
-            .log-img:active { transform: scale(0.98); }
+            .log-img { 
+                max-width: 100%; height: auto; border-radius: 10px; margin-top: 10px; 
+                border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+                display: block; cursor: zoom-in; 
+            }
 
-            .lightbox { display: none; position: fixed; z-index: 9999; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); justify-content: center; align-items: center; opacity: 0; transition: opacity 0.25s ease; }
+            /* LIGHTBOX */
+            .lightbox { 
+                display: none; position: fixed; z-index: 9999; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); 
+                justify-content: center; align-items: center; opacity: 0; transition: opacity 0.25s ease; 
+            }
             .lightbox.active { opacity: 1; }
-            .lightbox img { max-width: 95vw; max-height: 85vh; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1); }
-            .lightbox.active img { transform: scale(1); }
+            .lightbox img { max-width: 92vw; max-height: 85vh; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.4); }
         </style>
     </head>
     <body>
+
+    <!-- Ambient Glowing Background Spheres -->
+    <div class="ambient-background">
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+        <div class="glow-orb orb-3"></div>
+    </div>
 
     <div class="lightbox" id="lightbox" onclick="closeLightbox()">
         <img id="lightbox-img" src="" alt="Vollbild">
@@ -136,8 +245,8 @@
 
     <div class="glass-panel" id="main-panel">
         <div class="global-stats">
-            <div class="global-hours" id="render-global-total">51h 25m</div>
-            <div class="global-label" id="stats-label">Arbeitszeit im Juli 2026</div>
+            <div class="global-hours" id="render-global-total">0h 0m</div>
+            <div class="global-label" id="stats-label">Arbeitszeit</div>
         </div>
 
         <div class="segmented-control" id="seg-control">
@@ -148,19 +257,17 @@
         </div>
 
         <div class="view-container">
+            <!-- MONATS-ANSICHT: Scroll-Container für alle Monate -->
             <div class="main-view active-view" id="view-month">
-                <div class="calendar-title">Juli 2026</div>
-                <div class="calendar-grid" id="calendar-wrapper">
-                    <div class="cal-header">MO</div><div class="cal-header">DI</div><div class="cal-header">MI</div>
-                    <div class="cal-header">DO</div><div class="cal-header">FR</div><div class="cal-header">SA</div><div class="cal-header">SO</div>
-                    <div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell">1</div><div class="cal-cell">2</div><div class="cal-cell">3</div><div class="cal-cell">4</div><div class="cal-cell">5</div><div class="cal-cell has-work" onclick="forceDayView('2026-07-06')">6</div><div class="cal-cell has-work" onclick="forceDayView('2026-07-07')">7</div><div class="cal-cell has-work" onclick="forceDayView('2026-07-08')">8</div><div class="cal-cell has-work" onclick="forceDayView('2026-07-09')">9</div><div class="cal-cell">10</div><div class="cal-cell">11</div><div class="cal-cell">12</div><div class="cal-cell has-work" onclick="forceDayView('2026-07-13')">13</div><div class="cal-cell has-work" onclick="forceDayView('2026-07-14')">14</div><div class="cal-cell has-work" onclick="forceDayView('2026-07-15')">15</div><div class="cal-cell has-work" onclick="forceDayView('2026-07-16')">16</div><div class="cal-cell">17</div><div class="cal-cell">18</div><div class="cal-cell">19</div><div class="cal-cell">20</div><div class="cal-cell">21</div><div class="cal-cell has-work" onclick="forceDayView('2026-07-22')">22</div><div class="cal-cell has-work" onclick="forceDayView('2026-07-23')">23</div><div class="cal-cell">24</div><div class="cal-cell">25</div><div class="cal-cell">26</div><div class="cal-cell">27</div><div class="cal-cell">28</div><div class="cal-cell">29</div><div class="cal-cell">30</div><div class="cal-cell">31</div>
-                </div>
+                <div class="month-scroll-container" id="month-carousel"></div>
             </div>
 
+            <!-- WOCHEN-ANSICHT -->
             <div class="main-view" id="view-week">
                 <div class="week-list" id="week-rows-wrapper"></div>
             </div>
 
+            <!-- TAGES-ANSICHT -->
             <div class="main-view" id="view-day">
                 <div class="day-header">
                     <button class="nav-btn" id="btn-prev" onclick="changeDay(-1)">&#10094;</button>
@@ -177,9 +284,9 @@
     </div>
 
     <script>
-        const logData = {"2026-07-06": {"total_minutes": 170.0, "categories": {"Hardware": 170.0}, "entries": [{"start": "14:00", "end": "16:50", "start_min": 840, "end_min": 1010, "category": "Hardware", "desc": "Anfang Testaufbau, AOD auf Mikrometertisch schrauben mit der richtigen H\u00f6he", "duration": 170.0}]}, "2026-07-07": {"total_minutes": 310.0, "categories": {"Hardware": 310.0}, "entries": [{"start": "11:10", "end": "12:40", "start_min": 670, "end_min": 760, "category": "Hardware", "desc": "\u00dcberlegung weiteres Vorgehen beim Setup", "duration": 90.0}, {"start": "13:40", "end": "17:20", "start_min": 820, "end_min": 1040, "category": "Hardware", "desc": "L\u00e4ngeres SMA Kabel f\u00fcr Verbindung zwischen RF Amplifier und AOD, Lambda Halbe Platte vor AOD ausgetauscht (jetzt f\u00fcr 850 nm geeignet);<br> Bene hat die 25.4 mm Linse in ein schraubbares Linsengeh\u00e4use eingebaut;<br> Problem bei der AOD Justage: Der Strahl nach dem AOD wird eben abgelenkt und demensprechend die Linse danach nicht entlang der optischen Achse positioniert werden kann. Die optischen Achsen sind eben durch die Schraubenl\u00f6cher des Breadboard vorgegeben, da nur dort die Translationsmikrometerverschiebetische befestigt werden k\u00f6nnen. Wir d\u00fcrfen also mit keinem Winkel in die Linse eintreten, der von der optischen Achse abweicht.", "duration": 220.0}]}, "2026-07-08": {"total_minutes": 285.0, "categories": {"Aufr\u00e4umen": 80.0, "Hardware": 205.0}, "entries": [{"start": "10:00", "end": "11:20", "start_min": 600, "end_min": 680, "category": "Aufr\u00e4umen", "desc": "Aufr\u00e4umen des Tisches, den Bene f\u00fcr seine Bachelorarbeit verwendet hat, um Platz f\u00fcr das zweite Breadboard zu haben. <img src=\"aufgeraeumt_breadboard_8_July.jpeg\" alt=\"Aufger\u00e4umter Tisch\" class=\"log-img\" title=\"Zum Vergr\u00f6\u00dfern klicken\">", "duration": 80.0}, {"start": "14:00", "end": "17:25", "start_min": 840, "end_min": 1045, "category": "Hardware", "desc": "Einbau des zweiten Breadboards; Befestigung mit Metallabstandshaltern. <br>Positionierung der zweiten Linse auf das neue Breadboard -> Mikrometertisch montieren, AOD und erste Linse jeweils auf ihren Mikrometertischen auf dem ersten Breadboard festschrauben. Nach Kollimatorlinse jetzt ein Spiegel, dann Beam Splitter und dann zweiter Spiegel, Lambda-Halbe-Platte (850 nm), AOD, 1. Linse, 2. Linse, Spiegel, Objektiv, Glasplatte. <br>Das schwierige an dem Einbau des AOD ist, dass wir der Winkel des einfallenden Strahls genau so eingestellt werden muss, dass der Strahl danach genau durch die beiden Linsen auf einer optischen Achse verl\u00e4uft. <img src=\"AOD_Alignment_first_tries_8_July.jpeg\" alt=\"AOD Alignment erster Versuch\" class=\"log-img\" title=\"Zum Vergr\u00f6\u00dfern klicken\">", "duration": 205.0}]}, "2026-07-09": {"total_minutes": 300.0, "categories": {"Hardware": 300.0}, "entries": [{"start": "11:10", "end": "12:20", "start_min": 670, "end_min": 740, "category": "Hardware", "desc": "AOD neu justieren", "duration": 70.0}, {"start": "13:20", "end": "17:10", "start_min": 800, "end_min": 1030, "category": "Hardware", "desc": "Beamsplitter (PBS) zwischen Spiegel und Lambda Halbe Platte gepackt, umgelenkt mit zwei Spiegeln zu gro\u00dfem Non polarizing Beam Splitter vor der gro\u00dfen Linse -> das ist der kleine Strahl, den Bene dann verwendet hat, um das Objektiv zu justieren, da der Strahl nach dem Passieren der zweiten Linse stark vergr\u00f6\u00dfert ist und damit nicht mehr pr\u00e4zise justiert werden kann. Man k\u00f6nnte auch die Linsen einfach rausschrauben, was bei Bene nicht ging, da er die kleine Linse noch nicht in eine schraubbare Halterung gebaut hat, sondern die war eben in einem Halter, den man in den Sockel reindrehen muss und somit beim Rausdrehen zwangsl\u00e4ufig die Ausrichtung also den Winkel zum Strahl beim Wiederhereindrehen ver\u00e4ndern k\u00f6nnte, was das Alignment etwas zerst\u00f6rt. Bei uns k\u00f6nnten wir auch die Linsen herausschrauben und auf den extra Pfad verzichten; Beim Herausschrauben und Wiederhereinschrauben k\u00f6nnten nat\u00fcrlich minimale Verschiebungen der urspr\u00fcnglichen Positionen auftreten, diese sollten bei vorsichtigem Vorgehen aber eigentlich nicht allzu gro\u00df sein, da der Mikrometertisch festgeschraubt ist auf dem Breadboard und die Schraube f\u00fcr die Position bzw. eher die Feder, die den Schlitten h\u00e4lt, sich nicht so leicht ver\u00e4ndert. <br><br>Ich habe dann nat\u00fcrlich wieder den AOD neu justiert mit den zwei Umlenkspiegeln davor. Erst als der Strahl dann perfekt durch die Irisblenden an Stelle der Linsen ging, haben wir die Beam Splitter eingesetzt, sodass das Signal maximal ist. <br><br>Das Objektiv haben wir auch noch justiert, indem wir den kleinen Strahl mit einem Umlenkspiegel auf den Spiegel vor dem Objektiv ins Zentrum justiert haben und dann mit dem Spiegel auf dem Objektiv den Laser auf den Umlenkspiegel in den Punkt des eintreffenden Strahl justiert haben. Dann kann man mit dem Umlenkspiegel den Strahl auf die gleiche Position des einkommenden Strahls bei der Linse justieren, sodass die auch noch perfekt \u00fcberlappen. So erreicht man dann die R\u00fcckkopplung und kann mit Beamwalking des Objektivspiegels und des Umlenkspiegels feinjustieren. <br><br>Bei der Justage der Glasplatte, wie Bene es in seiner Arbeit gemacht hat, hatten wir jedoch das Problem, dass die durch die Glasplatte reflektierten Interferenzringe auf der Kamera nur sehr schwach waren und auch keine Unebenheiten zeigten. Eigentlich sollte man zwei unterschiedliche konzentrische Wellenpakete sehen, die sich eben nicht perfekt \u00fcberlagern und je nach Art der \u00dcberlagerung kann man dann den Winkel der Glasplatte justieren, bis die Ringe wirklich genau \u00fcbereinander liegen. Doch egal wie der Winkel war, die sehr schwachen Ringe zeigten keine Abweichungen. <br>Wir m\u00fcssen also herausfinden, wieso die Methode aktuell nicht funktioniert. Wir dachten, dass es vielleicht an der zu geringen Leistung liegt, dass man fast nichts sieht. Also habe ich die Kopplung noch etwas optimiert von dem Breadboard der 852 nm Laserquelle aus in die Glasfaser. Dabei konnte ich aber nur minimal die bei einem Beam Splitter gemessene Leistung von ca. 3.4 auf 3.6 mW erh\u00f6hen. Die Leistung der Laserquelle darf auch nicht viel h\u00f6her gestellt werden, aktuell stellen wir sie immer auf 0.167. Der AOM zur schnellen Leistungsanpassung blockiert auch nichts. <img src=\"Alignment_9_July.jpeg\" alt=\"Alignment von allem bis auf die Glasplatte\" class=\"log-img\" title=\"Zum Vergr\u00f6\u00dfern klicken\">", "duration": 230.0}]}, "2026-07-13": {"total_minutes": 310.0, "categories": {"Hardware": 310.0}, "entries": [{"start": "10:00", "end": "11:10", "start_min": 600, "end_min": 670, "category": "Hardware", "desc": "\u00dcberlegen, wie wir die Glasplatte besser justieren k\u00f6nnen und ob der kleine Strahl \u00fcber die zwei Strahlteiler wirklich notwendig ist. Man k\u00f6nnte nat\u00fcrlich einfach die Linsen herausdrehen und dann direkt den Strahl nehmen, um das Objektiv zu justieren. Beim erneuten Reindrehen und auch beim Herausdrehen k\u00f6nnen aber wieder relativ schnell Alignment Fehler auftreten; das Vorgehen h\u00e4tte aber den Vorteil, dass wir mehr Intensit\u00e4t beim Laser h\u00e4tten. Den ersten Strahlteiler m\u00fcssten wir allerdings so oder so behalten, weil er die lineare Polarisation f\u00fcr den AOD herausfiltert. Wir hatten auch noch das Problem, dass die Kamera immer nur mit Gl\u00fcck von der UI cockpit Software erkannt wurde, weil der Pixelclock anscheinend zu hoch war. Wir haben ein anderes Kamera-Kabel gefunden, bei welchem es dieses Problem nicht gab; die Kamera hat direkt ein Bild geliefert.<br><br>(Ich habe auch erst ein Python Script geschrieben, um die Kamera per pyueye aufzurufen und dort direkt den Pixelclock herunterzuschrauben, aber das Bild war nur schwarz.)<br><br>", "duration": 70.0}, {"start": "13:50", "end": "17:50", "start_min": 830, "end_min": 1070, "category": "Hardware", "desc": "Wir haben Florian die Situation erkl\u00e4rt und anstatt den Beam Splitter und damit den kleinen Justagestrahl zu entfernen, haben wir die Leistung erh\u00f6ht, die aus der Glasfaser kommt, indem Florian einerseits den Laser auf die maximale Leistung aufgedreht hat auf 0.261 und einen Polarisator zwischen Laserquelle und Koppler eingestellt hat. Wir haben f\u00fcr die maximale Leistung auch direkt den 50/50 Glasfaser Splitter ausgebaut. Ich habe dann wieder reingekoppelt, weil es zu leichten Verschiebungen kam, nachdem man die Glasfaser rein- und raussteckt in den Koppler. Wir haben bei dem Ende der Glasfaser um die 34 mW gemessen. Da das aber eigentlich schon zu viel ist und eben auch relativ gef\u00e4hrlich, falls man mal doch reinguckt, haben wir den Glasfaser Strahlteiler wieder eingebaut und kommen dann auf ca. 16 mW. So habe ich auch noch den Laser f\u00fcr meine sp\u00e4teren Rearranging Messungen. <br><br>Leider funktioniert das Glasplatten Alignment immer noch nicht so wie es sollte. Die Ringe sind immer noch nicht so gut sichtbar und werden vor allem \u00fcberstrahlt von einer starken K\u00f6rnung. Die konnte etwas reduziert werden, indem Florian den Beam Splitter bestehend aus zwei Glasplatten mithilfe einer Stangenkonstruktion umgedreht hat und dann noch die Kamera an der Stange befestigt hat, sodass der Abstand zwischen Beamplitter und Kamera m\u00f6glichst klein ist. Aber wirklich justieren kann man mit dem Bild immer noch nicht. <br><br>Da Bene in seiner Arbeit den 780 nm Laser f\u00fcr das Alignment verwendet hat und nicht den 852 nm wie wir bisher, haben wir den Laser jetzt auch mal gewechselt und tats\u00e4chlich sehen wir die Streifen der Interferenzring-\u00dcberlagerung besser und haben darauf basierend die Glasplatte justiert.<br><br>Danach haben wir den Laser wieder auf 852 nm gewechselt und Bene hat die Knife-Edge-Messung durchgef\u00fchrt. Wir erreichen ca. das Diffraction Limit, also sind bei so ca. 880 nm bei der y-Achse und bei der x-Achse sogar darunter bei irgendwas mit 700+ nm. Bei der x-Messung war das Strahlprofil auch etwas asymmetrisch, was auf Koma hindeutet und dementsprechend vor allem auf eine doch nicht so gut eingestellte Glasplatte.", "duration": 240.0}]}, "2026-07-14": {"total_minutes": 450.0, "categories": {"Software": 450.0}, "entries": [{"start": "10:30", "end": "12:10", "start_min": 630, "end_min": 730, "category": "Software", "desc": "Bene f\u00fchrt erneut eine Knife-Edge-Messung durch und ich \u00fcberlege mir, wie man mein Setup zum Testen des Rearrangements, welches ich im n\u00e4chsten Schritt aufbauen soll, ansteuern kann. Das Problem ist schlie\u00dflich, dass die Karte einerseits die statischen Strahlen erzeugen soll bei dem Optical Tweezers Aufbau und andererseits f\u00fcr mein Test Setup die Strahlen erzeugen soll. Ich habe deshalb zun\u00e4chst versucht, ein Programm zu schreiben, was f\u00fcr beide Ausg\u00e4nge die gew\u00fcnschten Signale gleichzeitig ausgibt.", "duration": 100.0}, {"start": "13:20", "end": "19:10", "start_min": 800, "end_min": 1150, "category": "Software", "desc": "Ich nehme jetzt auf Florians Rat hin den AFG, um die statischen Strahlen zu erzeugen f\u00fcr den Optical Tweezers Aufbau. Das richtig einzurichten hat sich als deutlich schwieriger herausgestellt als zun\u00e4chst gedacht. Als erstes musste ich die Kommunikation zwischen dem PC und dem AFG einrichten (USB-Kabel verbindet PC und AFG); pyvisa hat irgendwie nicht richtig funktioniert und ich musste auf eine andere Python Library zur USB Ansteuerung wechseln (/dev/usbtmc*).<br><br>Dann habe ich erstmal die Kalibrierung des AFG durchgef\u00fchrt. Also habe ich den RF-Amplifier an den AFG angeschlossen und den Output des Amplifiers dann wieder an die D\u00e4mpfungsglieder vor dem Spectrum Analyzer, und f\u00fcr alle Frequenzen in 1 MHz Schritten von 30 bis 90 MHz von 1 bis 680 mV Spannungsamplituden gemessen. So kam ich ca. auf die maximal m\u00f6glichen 2 Watt des AODs, den wir damit betreiben.<br><br>Die Werte der Messreihe kommen alle in eine .csv Datei und dienen von nun an als Kalibrationsmatrix, um die richtigen Spannungsamplituden den gew\u00fcnschten Leistungen zu ordnen zu k\u00f6nnen. Bei der Generierung der Signale f\u00fcr das AFG wollte ich zun\u00e4chst feste Dateien erstellen und diese dann auf den AFG laden. Das erm\u00f6glicht aber nat\u00fcrlich nicht, dass man schnell verschiedene Frequenzen und Leistungen testen kann, weil man jedes Mal die Datei erzeugen muss (.csv bzw. .tfw) und \u00fcber einen USB-Stick auf den AFG laden muss. Au\u00dferdem muss man am AFG auch noch f\u00fcr jede Datei die Frequenz einstellen und die Leistungsamplitude, mit der die Datei wiedergegeben werden soll. Diese Werte sind immer verschieden, lassen sich aber nat\u00fcrlich im Python Programm, das die Datei erstellt, mit berechnen und ausgeben. Nichtsdestotrotz ist der Ansatz der automatischen Ansteuerung deutlich praktischer und einfacher. Ich habe ein Programm geschrieben, was dann einfach immer den AFG mit dem richtigen Signal f\u00fcttert, um die gew\u00fcnschten Frequenzen und Leistungen zu erzeugen. Allerdings gab es das Problem, dass bei dem Signal am Spectrum Analyzer bei z.B. dem \u00fcberlagerten Signal von 60 und 75 MHz einen gr\u00f6\u00dferen Peak bei 90 MHz gab als der bei 60 MHz hoch war. Das ist unphysikalisch und kann nicht sein. Eine Intermodulationsfrequenz kann keine h\u00f6here Leistung haben als die urspr\u00fcnglichen Frequenzen. Auch bei niedrigerer Leistung blieb das Verh\u00e4ltnis gleich, was Intermodulationsfrequenzen ausschlie\u00dft und auf ein falsches Signal hindeutet. <img src=\"AFG_Kalibration_14_July.jpeg\" alt=\"AFG Kalibration\" class=\"log-img\" title=\"Zum Vergr\u00f6\u00dfern klicken\">", "duration": 350.0}]}, "2026-07-15": {"total_minutes": 205.0, "categories": {"Software & Hardware": 205.0}, "entries": [{"start": "13:50", "end": "17:15", "start_min": 830, "end_min": 1035, "category": "Software & Hardware", "desc": "Ich habe den Fehler gefunden mit der Hilfe von Gemini; Das Problem war, dass die Signale mit signed bits erstellt wurden, aber der AFG funktioniert mit unsigned bits, also das Minimum der Spannungskurve liegt bei 0 statt -8192. Das ist fundamental verschieden von der Spectrum Card, die eben mit signed bits funktioniert. Als ich das im Code ge\u00e4ndert habe f\u00fcr den AFG, konnte ich auch wieder perfekte Peaks bei nur den gew\u00fcnschten Frequenzen sehen. Die Frequenz Peaks sind zudem sichtbar definierter als bei der Spectrum Card und deuten somit auf ein reineres Signal hin, was Sinn macht, da das AFG zum Beispiel ein eigenes Geh\u00e4use hat, dass St\u00f6rungen besser d\u00e4mpft als eine in einen PC eingebaute PCIe Card.<br><br>Der Amplifier, den mir Florian gegeben hatte, hat leider nicht funktioniert und das Netzteil, mit dem ich ihn betreiben sollte, hat nicht genug Spannung geliefert. Also hat er mir noch einen neuen Amplifier und eine neue Power Supply besorgt. Damit konnte ich den Amplifier betreiben und habe eine Kalibrationsmatrix aufgenommen f\u00fcr den neuen Amplifer mit der Spectrum Card, um diese sp\u00e4ter f\u00fcr meine Steuerung im Rearranging Setup verwenden zu k\u00f6nnen.<br><br>Derweil hat Florian auch festgestellt, wie wir bereits zuvor, dass die gr\u00f6\u00dfere Linse unseres Optical Tweezers Setups leicht gekippt ist, weil der Halter es eben nicht anders zul\u00e4sst. Es gibt jedoch noch einen anderen Halter f\u00fcr diese gro\u00dfen 2 Zoll Linsen, die wir verwenden sollen. Da passt das Gewinde jedoch noch nicht, also waren Florian und Bene in der Werkstatt und haben ein Gewinde gebohrt.", "duration": 205.0}]}, "2026-07-16": {"total_minutes": 330.0, "categories": {"Hardware": 330.0}, "entries": [{"start": "10:20", "end": "12:10", "start_min": 620, "end_min": 730, "category": "Hardware", "desc": "Ich habe den AOD wieder durch die beiden Linse neu justiert und bei der Justage f\u00fcr das Objektiv ist uns aufgefallen, dass der Strahl einen starken Winkel hat und nicht parallel durch die Linsen geht. Wir m\u00fcssen also alles an die H\u00f6he der gro\u00dfen Linse anpassen, die jetzt eben gerade steht aufgrund der neuen Halterung aber auch h\u00f6her.", "duration": 110.0}, {"start": "13:30", "end": "17:10", "start_min": 810, "end_min": 1030, "category": "Hardware", "desc": "Wir haben also die H\u00f6he von allen Bauteilen erh\u00f6ht mit zus\u00e4tzlichen Spacern. Die H\u00f6he der Mitte der gro\u00dfen Linse lag bei ca. 8.1 cm \u00fcber dem optischen Tisch und an diesem Wert haben wir uns nun f\u00fcr die H\u00f6he orientiert, sodass der Strahl m\u00f6glichst geringf\u00fcgig abgelenkt wird in seiner H\u00f6henposition.<br><br>Es ergab sich leider wieder ein sp\u00fcrbarer Winkel des Strahls bei der Objektiv Justage. Man konnte gut erkennen, dass nach dem Einsetzen der kleinen stark gekr\u00fcmmten Linse (f = 1 inch = 25.4 mm), der Strahl nicht mehr die Mitte der zweiten Linse trifft. Das bedeutet, dass die Justage durch die Irisblenden nicht sonderlich hilfreich ist f\u00fcr den tats\u00e4chlichen Aufbau mit den Linsen. Also m\u00fcssen wir mit den beiden Linsen und den Irisblenden den Strahl justieren. Das Problem ist nur, dass bei der kleinen Linse aufgrund des sehr geringen Abstands zu dem AOD (wegen 4f-System f = 1 Zoll) keine Iriblende mehr reinpasst. Stattdessen haben wir also die Linse falsch herum in die runde, schraubbare Halterung eingebaut und konnten jetzt den Halter umdrehen und eine Irisblende hinzuf\u00fcgen, wobei die gekr\u00fcmmte Seite immer noch zuerst im Strahlengang ist. Es k\u00f6nnte sein, dass der Abstand, der n\u00f6tig ist, noch etwas geringer sein muss, als wir ihn jetzt per Augenma\u00df und Messen eingestellt haben und dann st\u00f6\u00dft der Linsenhalter gegen den AOD und wir k\u00f6nnen nicht n\u00e4her kommen. Uns fiel aber leider keine bessere Idee ein und deswegen belassen wir es jetzt erst einmal dabei.<br><br>Ich habe dann den Strahl wieder durch die geschlossenen Irisblenden navigiert und auf das Maximum justiert, dabei verwenden wir jetzt aber nur noch einen Umlenkspiegel und direkt die Halterung des Faserkopplers. Der zweite Umlenkspiegel wurde im Zuge des Neuaufbaus entfernt. Wir haben auch noch den Abstand zwischen den beiden Linsen justiert, indem wir den Laser nach der zweiten Linse mit einem Spiegel zur\u00fcckgekoppelt haben (Autokollimation). Den Spiegel dabei richtig einzustellen hat etwas gedauert, aber wir haben es letztlich hinbekommen. Dann haben wir die zweite Linse auf dem Mikrometertisch solange verstellt bis bei jeweils optimierter Spiegelausrichtung das globale Maximum erreicht wurde, wobei die Schwankungen und die Sensitivit\u00e4t sehr hoch waren. <img src=\"Neue_H\u00f6hen_16_July.jpeg\" alt=\"Neue H\u00f6hen der Bauteile\" class=\"log-img\" title=\"Zum Vergr\u00f6\u00dfern klicken\">", "duration": 220.0}]}, "2026-07-22": {"total_minutes": 400.0, "categories": {"Hardware": 400.0}, "entries": [{"start": "9:50", "end": "12:10", "start_min": 590, "end_min": 730, "category": "Hardware", "desc": "Wir m\u00fcssen doch erst den Strahl nach dem AOD durch die Irisblenden an den beiden Linsen justieren und dann die erste Linse einbauen. So wird sichergestellt, dass der Strahl die Linse auch wirklich mittig trifft und ohne Winkel. Daf\u00fcr haben wir die Linse in einen Halter mit Mikrometerschrauben nach einer Irisblende gedreht, sobald der Strahl nach dem AOD durch die beiden geschlossenen Linsen an den Irisblenden justiert wurde. Durch die Mikrometerschrauben wird die Linse nun so gedreht, dass der Strahl wieder perfekt durch die geschlossenen Irisblenden geht. Es wird dabei immer so gedreht bis die Leistun, gemessen mit dem Powermeter nach der zweiten Linse, maximal ist. Durch das Verstellen des Winkels mit den Mikrometerschrauben \u00e4ndert sich auch wieder der Winkel der Irisblende.<br>Um also den Strahl mittig ohne Winkel durch die erste Linse zu f\u00fchren, muss diese wieder entfernt werden und erneut der Strahl durch die beiden geschlossenen Linsen navigiert werden. Dann kann wieder die Linse eingebaut werden und der Winkel mit den Mikrometerschrauben angepasst werden, ... Das wird dann iterativ durchgef\u00fchrt bis der Strahl perfekt durchgeht mit und ohne erste Linse.<br>Die zweite Linse k\u00f6nnen wir leider nicht ausbauen, da sie fest in den Halter geschraubt wurde, um mehr Stabilit\u00e4t zu gew\u00e4hrleisten im Vergleich zum Draufschrauben auf einen hohlen Halter. In diesem Fall w\u00fcrde die Linse schlie\u00dflich leicht nach vorne kippen.<br>Wir k\u00f6nnen also bei der zweiten Linse nicht dieses iterative Verfahren anwenden, sondern nur die geschlossene Blende vor der fest eingebauten Linse verwenden.", "duration": 140.0}, {"start": "13:00", "end": "17:20", "start_min": 780, "end_min": 1040, "category": "Hardware", "desc": "Beim Justieren des Strahls auf das Objektiv fiel uns auf, dass der Strahl selbst bei einem v\u00f6llig nach oben geneigten Spiegel nicht ins das Objektiv geht. Das bedeutet, dass der Strahl durch die beiden Linsen nicht parallel verl\u00e4uft sondern nach unten verkippt ist. Die zweite Linse ist folglich zu niedrig. Eine erneute Messung der H\u00f6he mit dem Lineal best\u00e4tigt das. Davor haben wir vermeintlich 8.1 cm gemessen und jetzt ca. 7.8 cm. Das Problem ist eben, dass man sogenannte Parallaxenfehler beim Ablesen des Lineals macht und jetzt der Wert so bestimmt wurde, dass wir bei der geschlossenen Irisblende mit einem Gegenstand auf das Lineal gehen und so Ablesefehler reduzieren. Wir haben dann dementsprechend die Position der Linse um 3 mm erh\u00f6ht mit einem Spacer. Jetzt geht der Strahl mit einem deutlich geringeren Winkel des Spiegels in das Objektiv. Wir haben also die Ablenkung minimiert.<br><br>Nat\u00fcrlich haben wir dann auch noch den Abstand zwischen den beiden Linsen justiert, indem wir mit einem Spiegel den Strahl zur\u00fcckgekoppelt haben und eben bei der zweiten Linse den Abstand mit dem Mikrometertisch eingestellt haben. Dabei haben wir wieder das globale Maximum gefunden. Die Justage war extrem sensibel und man musste die Schrauben extrem fein drehen.<br><br>Wir haben dann noch das Objektiv \u00fcber die R\u00fcckkopplung justiert und die Glasplatte \u00fcber die Kamera mit dem 780 nm Laser. Die Glasplatte hat Bene auch fest geschraubt auf dem Mikrometertisch, damit beim Verschieben des Objektivs wenigstens der Abstand zwischen der Glasplatte und dem Objektiv konstant bleibt. <img src=\"Neuer_Halter_erste_Linse.jpeg\" alt=\"neues Halter erste Linse und zweite Linse h\u00f6her\" class=\"log-img\" title=\"Zum Vergr\u00f6\u00dfern klicken\">", "duration": 260.0}]}, "2026-07-23": {"total_minutes": 325.0, "categories": {"Hardware": 325.0}, "entries": [{"start": "10:10", "end": "12:20", "start_min": 610, "end_min": 740, "category": "Hardware", "desc": "Bene hat den Strahl vermessen. Ich habe mit dem Einrichten des Rearrangement Setups angefangen. Zun\u00e4chst habe ich aber noch die Messdaten der Kalibrierungsmatrizen f\u00fcr den neuen Verst\u00e4rker geplottet. Dann habe ich das Setup umgebaut und verwende jetzt statt dem AFG f\u00fcr die Trigger Signale der Pulse nur die Spectrum Card, die eben neben dem Signal, das sie selbst f\u00fcr die Steuerung des AODs ausgibt auch den Trigger \u00fcber CH1 ausgibt an das Oszilloskop. Dieses ist wie mit dem AFG eine Rechteckspannung bei 1 kHz.", "duration": 130.0}, {"start": "13:30", "end": "16:45", "start_min": 810, "end_min": 1005, "category": "Hardware", "desc": "Ich habe dann auch wieder den AOD eingebaut in das Setup meiner Bachelorarbeit. Ich habe dabei zun\u00e4chst den Strahl nochmal minimal nachjustiert durch zwei geschlossene Irisblenden, eine auf dem Linsenhalter vor dem Cage, die andere hinter dem Cage, vom Strahlenverlauf aus gesehen. Dann habe ich noch einen Halter wie bei dem anderen AOD gefunden und den AOD eingebaut. Die richtigen Winkel habe ich dann mit dem nach vielem Herumprobieren funktionierenden Python Skript eingestellt, sodass die Pulse alle ca. die gleiche Amplitude haben und eben so hoch wie m\u00f6glich sind. Wobei ich mir dabei noch nicht ganz sicher bin, ob ich sie wirklich komplett richtig eingestellt habe; Schlie\u00dflich erscheint zum Beispiel bei der Mittenfrequenz die nullte Ordnung gleich hell wie die erste und es gibt einige Nebenmaxima, die zumindest im Dunkeln sichtbar sind.<br><br>Bene und ich haben uns dann auch noch \u00fcberlegt, wie genau wir den Abstand zwischen der zweiten Linse und dem Objekt richtig einstellen. Wir wollten erst mit zwei Strahlen am Rand der Bandbreite den Abstand einstellen, indem wir den Mikrometertisch verschieben mit der Schraube, bis das Maximum der Leistung durch die geschlossene Irisblende in der Mitte des Objektivs erreicht wird. Das Interessante war jedoch, dass der Wert gestiegen ist, als wir in die falsche Richtung gedreht haben, also der Abstand, der bereits deutlich zu gering war (bestimmt um 3 cm), wurde noch kleiner als die eigentlichen 30 cm. Das l\u00e4sst sich dadurch erkl\u00e4ren, dass der Strahl der Mittenfrequenz, auf den alles justiert wird, nicht perfekt entlang der Achse, auf der der Mikrometertisch verschoben wird, liegt. Man m\u00fcsste also bei jeder neuen verschobenen Position wieder den Strahl per R\u00fcckkopplung in das Objektiv parallel zentrieren. Da wir nur einen Umlenkspiegel haben, m\u00fcssen wir aktuell immer auch das Objektiv selbst mit dem draufschraubbaren Spiegel f\u00fcr die R\u00fcckkopplung verwenden. Das sorgt dann aber auch daf\u00fcr, dass wir wieder die Glasplatte justieren m\u00fcssen, da sich dann ja der Winkel zwischend den beiden Bauteilen \u00e4ndert. Das ist sehr aufwendig, da wir daf\u00fcr zum Beispiel auch den Laser wechseln m\u00fcssen und die Justage mit der Kamera nicht wirklich aussagekr\u00e4ftig ist, sodass wir Messungen mit der Photodiode machen m\u00fcssen, um das Strahlprofil charakterisieren zu k\u00f6nnen und dementsprechend die Glasplatte justieren. Das Glasplatten Alignment l\u00e4sst sich vermeiden, wenn wir noch einen Umlenkspiegel hinzuf\u00fcgen vor dem Objektiv, da wir dann gen\u00fcgend Freiheitsgrade haben. Das ist allerdings knapp mit den uns nur zur Verf\u00fcgung stehenden 30 cm aufgrund der Brennweite der zweiten Linse. Es geht aber eventuell, wenn wir eben die Spiegel recht nah beieinander hinstellen und den Strahl etwas zickzack-f\u00f6rmig ablenken in das Objektiv. Dieses muss dann aber um 90 Grad rotiert werden. Aktuell geht das nicht, weil das Knife-Edge-Ger\u00e4t zum Strahlvermessen am Rand stehen muss von unserem erh\u00f6hten optischen Tisch und dadurch die Glasplatte ganz am Rand stehen muss. Dann haben wir aber keinen Platz, um den Mikrometertisch festzuklemmen. Das w\u00fcrde gehen, wenn wir jedoch noch eine Befestigungsplatte h\u00e4tten oder eventuell die der zweiten Linse nehmen...", "duration": 195.0}]}};
-        const dates = ["2026-07-06", "2026-07-07", "2026-07-08", "2026-07-09", "2026-07-13", "2026-07-14", "2026-07-15", "2026-07-16", "2026-07-22", "2026-07-23"];
-        let currentDayIndex = dates.length - 1; 
+        const logData = {"2026-07-06": {"total_minutes": 170.0, "categories": {"Hardware": 170.0}, "entries": [{"start": "14:00", "end": "16:50", "start_min": 840, "end_min": 1010, "category": "Hardware", "desc": "Anfang Testaufbau, AOD auf Mikrometertisch schrauben mit der richtigen H\u00f6he", "duration": 170.0}]}, "2026-07-07": {"total_minutes": 310.0, "categories": {"Hardware": 310.0}, "entries": [{"start": "11:10", "end": "12:40", "start_min": 670, "end_min": 760, "category": "Hardware", "desc": "\u00dcberlegung weiteres Vorgehen beim Setup", "duration": 90.0}, {"start": "13:40", "end": "17:20", "start_min": 820, "end_min": 1040, "category": "Hardware", "desc": "L\u00e4ngeres SMA Kabel f\u00fcr Verbindung zwischen RF Amplifier und AOD, Lambda Halbe Platte vor AOD ausgetauscht (jetzt f\u00fcr 850 nm geeignet);<br> Bene hat die 25.4 mm Linse in ein schraubbares Linsengeh\u00e4use eingebaut;<br> Problem bei der AOD Justage: Der Strahl nach dem AOD wird eben abgelenkt und demensprechend die Linse danach nicht entlang der optischen Achse positioniert werden kann. Die optischen Achsen sind eben durch die Schraubenl\u00f6cher des Breadboard vorgegeben, da nur dort die Translationsmikrometerverschiebetische befestigt werden k\u00f6nnen. Wir d\u00fcrfen also mit keinem Winkel in die Linse eintreten, der von der optischen Achse abweicht.", "duration": 220.0}]}, "2026-07-08": {"total_minutes": 285.0, "categories": {"Aufr\u00e4umen": 80.0, "Hardware": 205.0}, "entries": [{"start": "10:00", "end": "11:20", "start_min": 600, "end_min": 680, "category": "Aufr\u00e4umen", "desc": "Aufr\u00e4umen des Tisches, den Bene f\u00fcr seine Bachelorarbeit verwendet hat, um Platz f\u00fcr das zweite Breadboard zu haben. <img src=\"aufgeraeumt_breadboard_8_July.jpeg\" alt=\"Aufger\u00e4umter Tisch\" class=\"log-img\" title=\"Zum Vergr\u00f6\u00dfern klicken\">", "duration": 80.0}, {"start": "14:00", "end": "17:25", "start_min": 840, "end_min": 1045, "category": "Hardware", "desc": "Einbau des zweiten Breadboards; Befestigung mit Metallabstandshaltern. <br>Positionierung der zweiten Linse auf das neue Breadboard -> Mikrometertisch montieren, AOD und erste Linse jeweils auf ihren Mikrometertischen auf dem ersten Breadboard festschrauben. Nach Kollimatorlinse jetzt ein Spiegel, dann Beam Splitter und dann zweiter Spiegel, Lambda-Halbe-Platte (850 nm), AOD, 1. Linse, 2. Linse, Spiegel, Objektiv, Glasplatte. <br>Das schwierige an dem Einbau des AOD ist, dass wir der Winkel des einfallenden Strahls genau so eingestellt werden muss, dass der Strahl danach genau durch die beiden Linsen auf einer optischen Achse verl\u00e4uft. <img src=\"AOD_Alignment_first_tries_8_July.jpeg\" alt=\"AOD Alignment erster Versuch\" class=\"log-img\" title=\"Zum Vergr\u00f6\u00dfern klicken\">", "duration": 205.0}]}, "2026-07-09": {"total_minutes": 300.0, "categories": {"Hardware": 300.0}, "entries": [{"start": "11:10", "end": "12:20", "start_min": 670, "end_min": 740, "category": "Hardware", "desc": "AOD neu justieren", "duration": 70.0}, {"start": "13:20", "end": "17:10", "start_min": 800, "end_min": 1030, "category": "Hardware", "desc": "Beamsplitter (PBS) zwischen Spiegel und Lambda Halbe Platte gepackt, umgelenkt mit zwei Spiegeln zu gro\u00dfem Non polarizing Beam Splitter vor der gro\u00dfen Linse -> das ist der kleine Strahl, den Bene dann verwendet hat, um das Objektiv zu justieren, da der Strahl nach dem Passieren der zweiten Linse stark vergr\u00f6\u00dfert ist und damit nicht mehr pr\u00e4zise justiert werden kann. Man k\u00f6nnte auch die Linsen einfach rausschrauben, was bei Bene nicht ging, da er die kleine Linse noch nicht in eine schraubbare Halterung gebaut hat, sondern die war eben in einem Halter, den man in den Sockel reindrehen muss und somit beim Rausdrehen zwangsl\u00e4ufig die Ausrichtung also den Winkel zum Strahl beim Wiederhereindrehen ver\u00e4ndern k\u00f6nnte, was das Alignment etwas zerst\u00f6rt. Bei uns k\u00f6nnten wir auch die Linsen herausschrauben und auf den extra Pfad verzichten; Beim Herausschrauben und Wiederhereinschrauben k\u00f6nnten nat\u00fcrlich minimale Verschiebungen der urspr\u00fcnglichen Positionen auftreten, diese sollten bei vorsichtigem Vorgehen aber eigentlich nicht allzu gro\u00df sein, da der Mikrometertisch festgeschraubt ist auf dem Breadboard und die Schraube f\u00fcr die Position bzw. eher die Feder, die den Schlitten h\u00e4lt, sich nicht so leicht ver\u00e4ndert. <br><br>Ich habe dann nat\u00fcrlich wieder den AOD neu justiert mit den zwei Umlenkspiegeln davor. Erst als der Strahl dann perfekt durch die Irisblenden an Stelle der Linsen ging, haben wir die Beam Splitter eingesetzt, sodass das Signal maximal ist. <br><br>Das Objektiv haben wir auch noch justiert, indem wir den kleinen Strahl mit einem Umlenkspiegel auf den Spiegel vor dem Objektiv ins Zentrum justiert haben und dann mit dem Spiegel auf dem Objektiv den Laser auf den Umlenkspiegel in den Punkt des eintreffenden Strahl justiert haben. Dann kann man mit dem Umlenkspiegel den Strahl auf die gleiche Position des einkommenden Strahls bei der Linse justieren, sodass die auch noch perfekt \u00fcberlappen. So erreicht man dann die R\u00fcckkopplung und kann mit Beamwalking des Objektivspiegels und des Umlenkspiegels feinjustieren. <br><br>Bei der Justage der Glasplatte, wie Bene es in seiner Arbeit gemacht hat, hatten wir jedoch das Problem, dass die durch die Glasplatte reflektierten Interferenzringe auf der Kamera nur sehr schwach waren und auch keine Unebenheiten zeigten. Eigentlich sollte man zwei unterschiedliche konzentrische Wellenpakete sehen, die sich eben nicht perfekt \u00fcberlagern und je nach Art der \u00dcberlagerung kann man dann den Winkel der Glasplatte justieren, bis die Ringe wirklich genau \u00fcbereinander liegen. Doch egal wie der Winkel war, die sehr schwachen Ringe zeigten keine Abweichungen. <br>Wir m\u00fcssen also herausfinden, wieso die Methode aktuell nicht funktioniert. Wir dachten, dass es vielleicht an der zu geringen Leistung liegt, dass man fast nichts sieht. Also habe ich die Kopplung noch etwas optimiert von dem Breadboard der 852 nm Laserquelle aus in die Glasfaser. Dabei konnte ich aber nur minimal die bei einem Beam Splitter gemessene Leistung von ca. 3.4 auf 3.6 mW erh\u00f6hen. Die Leistung der Laserquelle darf auch nicht viel h\u00f6her gestellt werden, aktuell stellen wir sie immer auf 0.167. Der AOM zur schnellen Leistungsanpassung blockiert auch nichts. <img src=\"Alignment_9_July.jpeg\" alt=\"Alignment von allem bis auf die Glasplatte\" class=\"log-img\" title=\"Zum Vergr\u00f6\u00dfern klicken\">", "duration": 230.0}]}, "2026-07-13": {"total_minutes": 310.0, "categories": {"Hardware": 310.0}, "entries": [{"start": "10:00", "end": "11:10", "start_min": 600, "end_min": 670, "category": "Hardware", "desc": "\u00dcberlegen, wie wir die Glasplatte besser justieren k\u00f6nnen und ob der kleine Strahl \u00fcber die zwei Strahlteiler wirklich notwendig ist. Man k\u00f6nnte nat\u00fcrlich einfach die Linsen herausdrehen und dann direkt den Strahl nehmen, um das Objektiv zu justieren. Beim erneuten Reindrehen und auch beim Herausdrehen k\u00f6nnen aber wieder relativ schnell Alignment Fehler auftreten; das Vorgehen h\u00e4tte aber den Vorteil, dass wir mehr Intensit\u00e4t beim Laser h\u00e4tten. Den ersten Strahlteiler m\u00fcssten wir allerdings so oder so behalten, weil er die lineare Polarisation f\u00fcr den AOD herausfiltert. Wir hatten auch noch das Problem, dass die Kamera immer nur mit Gl\u00fcck von der UI cockpit Software erkannt wurde, weil der Pixelclock anscheinend zu hoch war. Wir haben ein anderes Kamera-Kabel gefunden, bei welchem es dieses Problem nicht gab; die Kamera hat direkt ein Bild geliefert.<br><br>(Ich habe auch erst ein Python Script geschrieben, um die Kamera per pyueye aufzurufen und dort direkt den Pixelclock herunterzuschrauben, aber das Bild war nur schwarz.)<br><br>", "duration": 70.0}, {"start": "13:50", "end": "17:50", "start_min": 830, "end_min": 1070, "category": "Hardware", "desc": "Wir haben Florian die Situation erkl\u00e4rt und anstatt den Beam Splitter und damit den kleinen Justagestrahl zu entfernen, haben wir die Leistung erh\u00f6ht, die aus der Glasfaser kommt, indem Florian einerseits den Laser auf die maximale Leistung aufgedreht hat auf 0.261 und einen Polarisator zwischen Laserquelle und Koppler eingestellt hat. Wir haben f\u00fcr die maximale Leistung auch direkt den 50/50 Glasfaser Splitter ausgebaut. Ich habe dann wieder reingekoppelt, weil es zu leichten Verschiebungen kam, nachdem man die Glasfaser rein- und raussteckt in den Koppler. Wir haben bei dem Ende der Glasfaser um die 34 mW gemessen. Da das aber eigentlich schon zu viel ist und eben auch relativ gef\u00e4hrlich, falls man mal doch reinguckt, haben wir den Glasfaser Strahlteiler wieder eingebaut und kommen dann auf ca. 16 mW. So habe ich auch noch den Laser f\u00fcr meine sp\u00e4teren Rearranging Messungen. <br><br>Leider funktioniert das Glasplatten Alignment immer noch nicht so wie es sollte. Die Ringe sind immer noch nicht so gut sichtbar und werden vor allem \u00fcberstrahlt von einer starken K\u00f6rnung. Die konnte etwas reduziert werden, indem Florian den Beam Splitter bestehend aus zwei Glasplatten mithilfe einer Stangenkonstruktion umgedreht hat und dann noch die Kamera an der Stange befestigt hat, sodass der Abstand zwischen Beamplitter und Kamera m\u00f6glichst klein ist. Aber wirklich justieren kann man mit dem Bild immer noch nicht. <br><br>Da Bene in seiner Arbeit den 780 nm Laser f\u00fcr das Alignment verwendet hat und nicht den 852 nm wie wir bisher, haben wir den Laser jetzt auch mal gewechselt und tats\u00e4chlich sehen wir die Streifen der Interferenzring-\u00dcberlagerung besser und haben darauf basierend die Glasplatte justiert.<br><br>Danach haben wir den Laser wieder auf 852 nm gewechselt und Bene hat die Knife-Edge-Messung durchgef\u00fchrt. Wir erreichen ca. das Diffraction Limit, also sind bei so ca. 880 nm bei der y-Achse und bei der x-Achse sogar darunter bei irgendwas mit 700+ nm. Bei der x-Messung war das Strahlprofil auch etwas asymmetrisch, was auf Koma hindeutet und dementsprechend vor allem auf eine doch nicht so gut eingestellte Glasplatte.", "duration": 240.0}]}, "2026-07-14": {"total_minutes": 450.0, "categories": {"Software": 450.0}, "entries": [{"start": "10:30", "end": "12:10", "start_min": 630, "end_min": 730, "category": "Software", "desc": "Bene f\u00fchrt erneut eine Knife-Edge-Messung durch und ich \u00fcberlege mir, wie man mein Setup zum Testen des Rearrangements, welches ich im n\u00e4chsten Schritt aufbauen soll, ansteuern kann. Das Problem ist schlie\u00dflich, dass die Karte einerseits die statischen Strahlen erzeugen soll bei dem Optical Tweezers Aufbau und andererseits f\u00fcr mein Test Setup die Strahlen erzeugen soll. Ich habe deshalb zun\u00e4chst versucht, ein Programm zu schreiben, was f\u00fcr beide Ausg\u00e4nge die gew\u00fcnschten Signale gleichzeitig ausgibt.", "duration": 100.0}, {"start": "13:20", "end": "19:10", "start_min": 800, "end_min": 1150, "category": "Software", "desc": "Ich nehme jetzt auf Florians Rat hin den AFG, um die statischen Strahlen zu erzeugen f\u00fcr den Optical Tweezers Aufbau. Das richtig einzurichten hat sich als deutlich schwieriger herausgestellt als zun\u00e4chst gedacht. Als erstes musste ich die Kommunikation zwischen dem PC und dem AFG einrichten (USB-Kabel verbindet PC und AFG); pyvisa hat irgendwie nicht richtig funktioniert und ich musste auf eine andere Python Library zur USB Ansteuerung wechseln (/dev/usbtmc*).<br><br>Dann habe ich erstmal die Kalibrierung des AFG durchgef\u00fchrt. Also habe ich den RF-Amplifier an den AFG angeschlossen und den Output des Amplifiers dann wieder an die D\u00e4mpfungsglieder vor dem Spectrum Analyzer, und f\u00fcr alle Frequenzen in 1 MHz Schritten von 30 bis 90 MHz von 1 bis 680 mV Spannungsamplituden gemessen. So kam ich ca. auf die maximal m\u00f6glichen 2 Watt des AODs, den wir damit betreiben.<br><br>Die Werte der Messreihe kommen alle in eine .csv Datei und dienen von nun an als Kalibrationsmatrix, um die richtigen Spannungsamplituden den gew\u00fcnschten Leistungen zu ordnen zu k\u00f6nnen. Bei der Generierung der Signale f\u00fcr das AFG wollte ich zun\u00e4chst feste Dateien erstellen und diese dann auf den AFG laden. Das erm\u00f6glicht aber nat\u00fcrlich nicht, dass man schnell verschiedene Frequenzen und Leistungen testen kann, weil man jedes Mal die Datei erzeugen muss (.csv bzw. .tfw) und \u00fcber einen USB-Stick auf den AFG laden muss. Au\u00dferdem muss man am AFG auch noch f\u00fcr jede Datei die Frequenz einstellen und die Leistungsamplitude, mit der die Datei wiedergegeben werden soll. Diese Werte sind immer verschieden, lassen sich aber nat\u00fcrlich im Python Programm, das die Datei erstellt, mit berechnen und ausgeben. Nichtsdestotrotz ist der Ansatz der automatischen Ansteuerung deutlich praktischer und einfacher. Ich habe ein Programm geschrieben, was dann einfach immer den AFG mit dem richtigen Signal f\u00fcttert, um die gew\u00fcnschten Frequenzen und Leistungen zu erzeugen. Allerdings gab es das Problem, dass bei dem Signal am Spectrum Analyzer bei z.B. dem \u00fcberlagerten Signal von 60 und 75 MHz einen gr\u00f6\u00dferen Peak bei 90 MHz gab als der bei 60 MHz hoch war. Das ist unphysikalisch und kann nicht sein. Eine Intermodulationsfrequenz kann keine h\u00f6here Leistung haben als die urspr\u00fcnglichen Frequenzen. Auch bei niedrigerer Leistung blieb das Verh\u00e4ltnis gleich, was Intermodulationsfrequenzen ausschlie\u00dft und auf ein falsches Signal hindeutet. <img src=\"AFG_Kalibration_14_July.jpeg\" alt=\"AFG Kalibration\" class=\"log-img\" title=\"Zum Vergr\u00f6\u00dfern klicken\">", "duration": 350.0}]}, "2026-07-15": {"total_minutes": 205.0, "categories": {"Software & Hardware": 205.0}, "entries": [{"start": "13:50", "end": "17:15", "start_min": 830, "end_min": 1035, "category": "Software & Hardware", "desc": "Ich habe den Fehler gefunden mit der Hilfe von Gemini; Das Problem war, dass die Signale mit signed bits erstellt wurden, aber der AFG funktioniert mit unsigned bits, also das Minimum der Spannungskurve liegt bei 0 statt -8192. Das ist fundamental verschieden von der Spectrum Card, die eben mit signed bits funktioniert. Als ich das im Code ge\u00e4ndert habe f\u00fcr den AFG, konnte ich auch wieder perfekte Peaks bei nur den gew\u00fcnschten Frequenzen sehen. Die Frequenz Peaks sind zudem sichtbar definierter als bei der Spectrum Card und deuten somit auf ein reineres Signal hin, was Sinn macht, da das AFG zum Beispiel ein eigenes Geh\u00e4use hat, dass St\u00f6rungen besser d\u00e4mpft als eine in einen PC eingebaute PCIe Card.<br><br>Der Amplifier, den mir Florian gegeben hatte, hat leider nicht funktioniert und das Netzteil, mit dem ich ihn betreiben sollte, hat nicht genug Spannung geliefert. Also hat er mir noch einen neuen Amplifier und eine neue Power Supply besorgt. Damit konnte ich den Amplifier betreiben und habe eine Kalibrationsmatrix aufgenommen f\u00fcr den neuen Amplifer mit der Spectrum Card, um diese sp\u00e4ter f\u00fcr meine Steuerung im Rearranging Setup verwenden zu k\u00f6nnen.<br><br>Derweil hat Florian auch festgestellt, wie wir bereits zuvor, dass die gr\u00f6\u00dfere Linse unseres Optical Tweezers Setups leicht gekippt ist, weil der Halter es eben nicht anders zul\u00e4sst. Es gibt jedoch noch einen anderen Halter f\u00fcr diese gro\u00dfen 2 Zoll Linsen, die wir verwenden sollen. Da passt das Gewinde jedoch noch nicht, also waren Florian und Bene in der Werkstatt und haben ein Gewinde gebohrt.", "duration": 205.0}]}, "2026-07-16": {"total_minutes": 330.0, "categories": {"Hardware": 330.0}, "entries": [{"start": "10:20", "end": "12:10", "start_min": 620, "end_min": 730, "category": "Hardware", "desc": "Ich habe den AOD wieder durch die beiden Linse neu justiert und bei der Justage f\u00fcr das Objektiv ist uns aufgefallen, dass der Strahl einen starken Winkel hat und nicht parallel durch die Linsen geht. Wir m\u00fcssen also alles an die H\u00f6he der gro\u00dfen Linse anpassen, die jetzt eben gerade steht aufgrund der neuen Halterung aber auch h\u00f6her.", "duration": 110.0}, {"start": "13:30", "end": "17:10", "start_min": 810, "end_min": 1030, "category": "Hardware", "desc": "Wir haben also die H\u00f6he von allen Bauteilen erh\u00f6ht mit zus\u00e4tzlichen Spacern. Die H\u00f6he der Mitte der gro\u00dfen Linse lag bei ca. 8.1 cm \u00fcber dem optischen Tisch und an diesem Wert haben wir uns nun f\u00fcr die H\u00f6he orientiert, sodass der Strahl m\u00f6glichst geringf\u00fcgig abgelenkt wird in seiner H\u00f6henposition.<br><br>Es ergab sich leider wieder ein sp\u00fcrbarer Winkel des Strahls bei der Objektiv Justage. Man konnte gut erkennen, dass nach dem Einsetzen der kleinen stark gekr\u00fcmmten Linse (f = 1 inch = 25.4 mm), der Strahl nicht mehr die Mitte der zweiten Linse trifft. Das bedeutet, dass die Justage durch die Irisblenden nicht sonderlich hilfreich ist f\u00fcr den tats\u00e4chlichen Aufbau mit den Linsen. Also m\u00fcssen wir mit den beiden Linsen und den Irisblenden den Strahl justieren. Das Problem ist nur, dass bei der kleinen Linse aufgrund des sehr geringen Abstands zu dem AOD (wegen 4f-System f = 1 Zoll) keine Iriblende mehr reinpasst. Stattdessen haben wir also die Linse falsch herum in die runde, schraubbare Halterung eingebaut und konnten jetzt den Halter umdrehen und eine Irisblende hinzuf\u00fcgen, wobei die gekr\u00fcmmte Seite immer noch zuerst im Strahlengang ist. Es k\u00f6nnte sein, dass der Abstand, der n\u00f6tig ist, noch etwas geringer sein muss, als wir ihn jetzt per Augenma\u00df und Messen eingestellt haben und dann st\u00f6\u00dft der Linsenhalter gegen den AOD und wir k\u00f6nnen nicht n\u00e4her kommen. Uns fiel aber leider keine bessere Idee ein und deswegen belassen wir es jetzt erst einmal dabei.<br><br>Ich habe dann den Strahl wieder durch die geschlossenen Irisblenden navigiert und auf das Maximum justiert, dabei verwenden wir jetzt aber nur noch einen Umlenkspiegel und direkt die Halterung des Faserkopplers. Der zweite Umlenkspiegel wurde im Zuge des Neuaufbaus entfernt. Wir haben auch noch den Abstand zwischen den beiden Linsen justiert, indem wir den Laser nach der zweiten Linse mit einem Spiegel zur\u00fcckgekoppelt haben (Autokollimation). Den Spiegel dabei richtig einzustellen hat etwas gedauert, aber wir haben es letztlich hinbekommen. Dann haben wir die zweite Linse auf dem Mikrometertisch solange verstellt bis bei jeweils optimierter Spiegelausrichtung das globale Maximum erreicht wurde, wobei die Schwankungen und die Sensitivit\u00e4t sehr hoch waren. <img src=\"Neue_H\u00f6hen_16_July.jpeg\" alt=\"Neue H\u00f6hen der Bauteile\" class=\"log-img\" title=\"Zum Vergr\u00f6\u00dfern klicken\">", "duration": 220.0}]}, "2026-07-22": {"total_minutes": 400.0, "categories": {"Hardware": 400.0}, "entries": [{"start": "9:50", "end": "12:10", "start_min": 590, "end_min": 730, "category": "Hardware", "desc": "Wir m\u00fcssen doch erst den Strahl nach dem AOD durch die Irisblenden an den beiden Linsen justieren und dann die erste Linse einbauen. So wird sichergestellt, dass der Strahl die Linse auch wirklich mittig trifft und ohne Winkel. Daf\u00fcr haben wir die Linse in einen Halter mit Mikrometerschrauben nach einer Irisblende gedreht, sobald der Strahl nach dem AOD durch die beiden geschlossenen Linsen an den Irisblenden justiert wurde. Durch die Mikrometerschrauben wird die Linse nun so gedreht, dass der Strahl wieder perfekt durch die geschlossenen Irisblenden geht. Es wird dabei immer so gedreht bis die Leistun, gemessen mit dem Powermeter nach der zweiten Linse, maximal ist. Durch das Verstellen des Winkels mit den Mikrometerschrauben \u00e4ndert sich auch wieder der Winkel der Irisblende.<br>Um also den Strahl mittig ohne Winkel durch die erste Linse zu f\u00fchren, muss diese wieder entfernt werden und erneut der Strahl durch die beiden geschlossenen Linsen navigiert werden. Dann kann wieder die Linse eingebaut werden und der Winkel mit den Mikrometerschrauben angepasst werden, ... Das wird dann iterativ durchgef\u00fchrt bis der Strahl perfekt durchgeht mit und ohne erste Linse.<br>Die zweite Linse k\u00f6nnen wir leider nicht ausbauen, da sie fest in den Halter geschraubt wurde, um mehr Stabilit\u00e4t zu gew\u00e4hrleisten im Vergleich zum Draufschrauben auf einen hohlen Halter. In diesem Fall w\u00fcrde die Linse schlie\u00dflich leicht nach vorne kippen.<br>Wir k\u00f6nnen also bei der zweiten Linse nicht dieses iterative Verfahren anwenden, sondern nur die geschlossene Blende vor der fest eingebauten Linse verwenden.", "duration": 140.0}, {"start": "13:00", "end": "17:20", "start_min": 780, "end_min": 1040, "category": "Hardware", "desc": "Beim Justieren des Strahls auf das Objektiv fiel uns auf, dass der Strahl selbst bei einem v\u00f6llig nach oben geneigten Spiegel nicht ins das Objektiv geht. Das bedeutet, dass der Strahl durch die beiden Linsen nicht parallel verl\u00e4uft sondern nach unten verkippt ist. Die zweite Linse ist folglich zu niedrig. Eine erneute Messung der H\u00f6he mit dem Lineal best\u00e4tigt das. Davor haben wir vermeintlich 8.1 cm gemessen und jetzt ca. 7.8 cm. Das Problem ist eben, dass man sogenannte Parallaxenfehler beim Ablesen des Lineals macht und jetzt der Wert so bestimmt wurde, dass wir bei der geschlossenen Irisblende mit einem Gegenstand auf das Lineal gehen und so Ablesefehler reduzieren. Wir haben dann dementsprechend die Position der Linse um 3 mm erh\u00f6ht mit einem Spacer. Jetzt geht der Strahl mit einem deutlich geringeren Winkel des Spiegels in das Objektiv. Wir haben also die Ablenkung minimiert.<br><br>Nat\u00fcrlich haben wir dann auch noch den Abstand zwischen den beiden Linsen justiert, indem wir mit einem Spiegel den Strahl zur\u00fcckgekoppelt haben und eben bei der zweiten Linse den Abstand mit dem Mikrometertisch eingestellt haben. Dabei haben wir wieder das globale Maximum gefunden. Die Justage war extrem sensibel und man musste die Schrauben extrem fein drehen.<br><br>Wir haben dann noch das Objektiv \u00fcber die R\u00fcckkopplung justiert und die Glasplatte \u00fcber die Kamera mit dem 780 nm Laser. Die Glasplatte hat Bene auch fest geschraubt auf dem Mikrometertisch, damit beim Verschieben des Objektivs wenigstens der Abstand zwischen der Glasplatte und dem Objektiv konstant bleibt. <img src=\"Neuer_Halter_erste_Linse.jpeg\" alt=\"neues Halter erste Linse und zweite Linse h\u00f6her\" class=\"log-img\" title=\"Zum Vergr\u00f6\u00dfern klicken\">", "duration": 260.0}]}, "2026-07-23": {"total_minutes": 325.0, "categories": {"Hardware": 325.0}, "entries": [{"start": "10:10", "end": "12:20", "start_min": 610, "end_min": 740, "category": "Hardware", "desc": "Bene hat den Strahl vermessen. Ich habe mit dem Einrichten des Rearrangement Setups angefangen. Zun\u00e4chst habe ich aber noch die Messdaten der Kalibrierungsmatrizen f\u00fcr den neuen Verst\u00e4rker geplottet. Dann habe ich das Setup umgebaut und verwende jetzt statt dem AFG f\u00fcr die Trigger Signale der Pulse nur die Spectrum Card, die eben neben dem Signal, das sie selbst f\u00fcr die Steuerung des AODs ausgibt auch den Trigger \u00fcber CH1 ausgibt an das Oszilloskop. Dieses ist wie mit dem AFG eine Rechteckspannung bei 1 kHz.", "duration": 130.0}, {"start": "13:30", "end": "16:45", "start_min": 810, "end_min": 1005, "category": "Hardware", "desc": "Ich habe dann auch wieder den AOD eingebaut in das Setup meiner Bachelorarbeit. Ich habe dabei zun\u00e4chst den Strahl nochmal minimal nachjustiert durch zwei geschlossene Irisblenden, eine auf dem Linsenhalter vor dem Cage, die andere hinter dem Cage, vom Strahlenverlauf aus gesehen. Dann habe ich noch einen Halter wie bei dem anderen AOD gefunden und den AOD eingebaut. Die richtigen Winkel habe ich dann mit dem nach vielem Herumprobieren funktionierenden Python Skript eingestellt, sodass die Pulse alle ca. die gleiche Amplitude haben und eben so hoch wie m\u00f6glich sind. Wobei ich mir dabei noch nicht ganz sicher bin, ob ich sie wirklich komplett richtig eingestellt habe; Schlie\u00dflich erscheint zum Beispiel bei der Mittenfrequenz die nullte Ordnung gleich hell wie die erste und es gibt einige Nebenmaxima, die zumindest im Dunkeln sichtbar sind.<br><br>Bene und ich haben uns dann auch noch \u00fcberlegt, wie genau wir den Abstand zwischen der zweiten Linse und dem Objekt richtig einstellen. Wir wollten erst mit zwei Strahlen am Rand der Bandbreite den Abstand einstellen, indem wir den Mikrometertisch verschieben mit der Schraube, bis das Maximum der Leistung durch die geschlossene Irisblende in der Mitte des Objektivs erreicht wird. Das Interessante war jedoch, dass der Wert gestiegen ist, als wir in die falsche Richtung gedreht haben, also der Abstand, der bereits deutlich zu gering war (bestimmt um 3 cm), wurde noch kleiner als die eigentlichen 30 cm. Das l\u00e4sst sich dadurch erkl\u00e4ren, dass der Strahl der Mittenfrequenz, auf den alles justiert wird, nicht perfekt entlang der Achse, auf der der Mikrometertisch verschoben wird, liegt. Man m\u00fcsste also bei jeder neuen verschobenen Position wieder den Strahl per R\u00fcckkopplung in das Objektiv parallel zentrieren. Da wir nur einen Umlenkspiegel haben, m\u00fcssen wir aktuell immer auch das Objektiv selbst mit dem draufschraubbaren Spiegel f\u00fcr die R\u00fcckkopplung verwenden. Das sorgt dann aber auch daf\u00fcr, dass wir wieder die Glasplatte justieren m\u00fcssen, da sich dann ja der Winkel zwischend den beiden Bauteilen \u00e4ndert. Das ist sehr aufwendig, da wir daf\u00fcr zum Beispiel auch den Laser wechseln m\u00fcssen und die Justage mit der Kamera nicht wirklich aussagekr\u00e4ftig ist, sodass wir Messungen mit der Photodiode machen m\u00fcssen, um das Strahlprofil charakterisieren zu k\u00f6nnen und dementsprechend die Glasplatte justieren. Das Glasplatten Alignment l\u00e4sst sich vermeiden, wenn wir noch einen Umlenkspiegel hinzuf\u00fcgen vor dem Objektiv, da wir dann gen\u00fcgend Freiheitsgrade haben. Das ist allerdings knapp mit den uns nur zur Verf\u00fcgung stehenden 30 cm aufgrund der Brennweite der zweiten Linse. Es geht aber eventuell, wenn wir eben die Spiegel recht nah beieinander hinstellen und den Strahl etwas zickzack-f\u00f6rmig ablenken in das Objektiv. Dieses muss dann aber um 90 Grad rotiert werden. Aktuell geht das nicht, weil das Knife-Edge-Ger\u00e4t zum Strahlvermessen am Rand stehen muss von unserem erh\u00f6hten optischen Tisch und dadurch die Glasplatte ganz am Rand stehen muss. Dann haben wir aber keinen Platz, um den Mikrometertisch festzuklemmen. Das w\u00fcrde gehen, wenn wir jedoch noch eine Befestigungsplatte h\u00e4tten oder eventuell die der zweiten Linse nehmen...", "duration": 195.0}]}, "2026-09-09": {"total_minutes": 190.0, "categories": {"Hardware": 190.0}, "entries": [{"start": "11:30", "end": "12:00", "start_min": 690, "end_min": 720, "category": "Hardware", "desc": "Wir haben uns wieder mit dem Aufbau vertraut gemacht und \u00fcberlegt, wie wir den umbauen k\u00f6nnen, um den Laser auf das Objektiv mit zwei Umlenkspiegeln statt einem lenken zu k\u00f6nnen und dadurch nicht mehr das Objektiv justieren zu m\u00fcssen. Wir haben erst \u00fcberlegt direkt den ganzen Aufbau auf nur einen von den beiden Tischen zu komprimieren. Das Problem ist, dass die beiden verwendeten Tische nicht breit genug sind, um die Bauteile auf einem einzelnen Tisch aneinander zu reihen und vor allem ist der kleine Strahl im Weg.", "duration": 30.0}, {"start": "13:00", "end": "15:40", "start_min": 780, "end_min": 940, "category": "Hardware", "desc": "Beim Einbau von beiden Umlenkspiegeln muss das Objektiv um 90 Grad gedreht eingebaut werden und daf\u00fcr brauchen wir aus Platzgr\u00fcnden eine Platte zum Befestigen des Mikrometertisches des Objektivs auf den optischen Tisch. Da wir keine zus\u00e4tzliche Platte gefunden haben, haben wir uns entschieden, die der ersten Linse zu verwenden und somit eben die erste Linse einfach ohne Mikrometertisch starr zu positionieren. Diese musste dann wieder so in den Strahlengang gesetzt werden, dass der Strahl durch den Linsen-Halter bei geschlossener Blende ohne Linse die maximale Leistung am Powermeter hinter der zweiten Linse erzeugt und m\u00f6glichst senkrecht zur optischen Achse steht. Dann wird die Linse wieder reingeschraubt und die Yaw und Tilt Schrauben des Linsenhalters gedreht, sodass das Signal am Powermeter wieder maximal ist. Dann wird wieder die Linse entfernt und der Strahl mit den beiden Umlenkspiegeln vor dem AOD so justiert, dass durch die beiden geschlossenen Irisblenden bei den Linsen das Signal dahinter am Powermeter maximiert wird. Das wird iterativ gemacht. An den Yaw und Tilt Schrauben des AODs muss auch gedreht werden, um das Signal zu maximieren.", "duration": 160.0}]}, "2026-09-10": {"total_minutes": 585.0, "categories": {"Hardware": 585.0}, "entries": [{"start": "10:30", "end": "12:10", "start_min": 630, "end_min": 730, "category": "Hardware", "desc": "\u00dcberlegung weiteres Vorgehen beim Setup", "duration": 100.0}, {"start": "13:10", "end": "21:15", "start_min": 790, "end_min": 1275, "category": "Hardware", "desc": "\u00dcberlegung weiteres Vorgehen beim Setup", "duration": 485.0}]}};
+        const dates = ["2026-07-06", "2026-07-07", "2026-07-08", "2026-07-09", "2026-07-13", "2026-07-14", "2026-07-15", "2026-07-16", "2026-07-22", "2026-07-23", "2026-09-09", "2026-09-10"];
+        let currentDayIndex = dates.length > 0 ? dates.length - 1 : 0; 
         
         const views = ['month', 'week', 'day'];
         let currentActiveView = 'month'; 
@@ -187,8 +294,154 @@
 
         const segControl = document.getElementById('seg-control');
         const pill = document.getElementById('pill');
+        const monthCarousel = document.getElementById('month-carousel');
         
-        // --- DRAG & DROP LOGIK ---
+        let activeMonthCard = null;
+
+        const monthNames = [
+            'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+            'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
+        ];
+
+        // --- HILFSFUNKTIONEN ---
+        function formatHours(minutes) {
+            const h = Math.floor(minutes / 60);
+            const m = Math.round(minutes % 60);
+            return h + "h " + m + "m";
+        }
+
+        function formatDayDate(dateString) {
+            const parts = dateString.split('-');
+            const d = new Date(parts[0], parts[1] - 1, parts[2]);
+            const days = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'];
+            return days[d.getDay()] + " " + parseInt(parts[2], 10) + ". " + monthNames[d.getMonth()];
+        }
+
+        // --- MONATSKALENDER DYNAMISCH GENERIEREN ---
+        function getMonthRange() {
+            if (dates.length === 0) return [];
+            const first = dates[0].split('-');
+            const last = dates[dates.length - 1].split('-');
+            
+            let curYear = parseInt(first[0], 10);
+            let curMonth = parseInt(first[1], 10);
+            const endYear = parseInt(last[0], 10);
+            const endMonth = parseInt(last[1], 10);
+            
+            const list = [];
+            while (curYear < endYear || (curYear === endYear && curMonth <= endMonth)) {
+                list.push({
+                    year: curYear,
+                    month: curMonth,
+                    key: `${curYear}-${String(curMonth).padStart(2, '0')}`
+                });
+                curMonth++;
+                if (curMonth > 12) {
+                    curMonth = 1;
+                    curYear++;
+                }
+            }
+            return list;
+        }
+
+        function initMonthCalendar() {
+            monthCarousel.innerHTML = '';
+            const months = getMonthRange();
+            
+            months.forEach(m => {
+                let monthTotal = 0;
+                for (const d in logData) {
+                    if (d.startsWith(m.key)) monthTotal += logData[d].total_minutes;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'month-card';
+                card.dataset.monthKey = m.key;
+                card.dataset.monthName = `${monthNames[m.month - 1]} ${m.year}`;
+                card.dataset.totalMins = monthTotal;
+
+                const daysInMonth = new Date(m.year, m.month, 0).getDate();
+                // 1. Wochentag im Monat (Montag = 0, ..., Sonntag = 6)
+                const firstDayWeekday = (new Date(m.year, m.month - 1, 1).getDay() + 6) % 7;
+
+                let gridHtml = `
+                    <div class="month-header-row">
+                        <div class="month-title">${monthNames[m.month - 1]} ${m.year}</div>
+                        <div class="month-subtotal">${formatHours(monthTotal)}</div>
+                    </div>
+                    <div class="calendar-grid">
+                        <div class="cal-header">MO</div><div class="cal-header">DI</div><div class="cal-header">MI</div>
+                        <div class="cal-header">DO</div><div class="cal-header">FR</div><div class="cal-header">SA</div><div class="cal-header">SO</div>
+                `;
+
+                // Leerzellen vor dem 1. Tag
+                for (let i = 0; i < firstDayWeekday; i++) {
+                    gridHtml += '<div class="cal-cell empty"></div>';
+                }
+
+                // Tage 1 bis N
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const dateStr = `${m.key}-${String(d).padStart(2, '0')}`;
+                    if (dateStr in logData) {
+                        gridHtml += `<div class="cal-cell has-work" onclick="forceDayView('${dateStr}')">${d}</div>`;
+                    } else {
+                        gridHtml += `<div class="cal-cell">${d}</div>`;
+                    }
+                }
+                gridHtml += '</div>';
+                card.innerHTML = gridHtml;
+                monthCarousel.appendChild(card);
+            });
+
+            // Standardmäßig zum letzten Monat scrollen (z. B. neuester Monat)
+            const cards = monthCarousel.querySelectorAll('.month-card');
+            if (cards.length > 0) {
+                const targetCard = cards[cards.length - 1];
+                activeMonthCard = targetCard;
+                setTimeout(() => {
+                    targetCard.scrollIntoView({ behavior: 'auto', block: 'center' });
+                    updateMonthHeader(targetCard);
+                }, 60);
+            }
+        }
+
+        // --- HEADER JE NACH ZENTRIERTEM MONAT AKTUALISIEREN ---
+        function updateMonthHeader(card) {
+            if (!card) return;
+            const totalMins = parseInt(card.dataset.totalMins || '0', 10);
+            document.getElementById('render-global-total').innerText = formatHours(totalMins);
+            document.getElementById('stats-label').innerText = `Arbeitszeit im ${card.dataset.monthName}`;
+        }
+
+        // Erkennt in Echtzeit beim Scrollen den Monat in der Mitte des Bildschirms
+        monthCarousel.addEventListener('scroll', () => {
+            if (currentActiveView !== 'month') return;
+            
+            const cards = monthCarousel.querySelectorAll('.month-card');
+            const containerRect = monthCarousel.getBoundingClientRect();
+            const containerCenter = containerRect.top + containerRect.height / 2;
+
+            let closestCard = null;
+            let minDistance = Infinity;
+
+            cards.forEach(card => {
+                const cardRect = card.getBoundingClientRect();
+                const cardCenter = cardRect.top + cardRect.height / 2;
+                const dist = Math.abs(containerCenter - cardCenter);
+
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    closestCard = card;
+                }
+            });
+
+            if (closestCard && closestCard !== activeMonthCard) {
+                activeMonthCard = closestCard;
+                updateMonthHeader(closestCard);
+            }
+        }, { passive: true });
+
+        // --- GESTEN & SEGMENTED CONTROL ---
         let isDragging = false;
         let startTouchX = 0;
         let initialPercent = 0;
@@ -203,36 +456,27 @@
         segControl.addEventListener('touchmove', (e) => {
             if (!isDragging) return;
             e.preventDefault(); 
-            
             const deltaX = e.touches[0].clientX - startTouchX;
             const deltaPercent = (deltaX / pill.offsetWidth) * 100;
             let newPercent = initialPercent + deltaPercent;
-            
             if (newPercent < 0) newPercent = 0;
             if (newPercent > 200) newPercent = 200;
-            
             pill.style.transform = `translateX(${newPercent}%)`;
         }, { passive: false });
 
         segControl.addEventListener('touchend', (e) => {
             if (!isDragging) return;
             isDragging = false;
-            
             pill.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
-            
             const deltaX = e.changedTouches[0].clientX - startTouchX;
             if (Math.abs(deltaX) < 5) {
                 pill.style.transform = `translateX(${currentIndex * 100}%)`;
                 return;
             }
-            
             const deltaPercent = (deltaX / pill.offsetWidth) * 100;
-            let newPercent = initialPercent + deltaPercent;
-            let newIndex = Math.round(newPercent / 100);
-            
+            let newIndex = Math.round((initialPercent + deltaPercent) / 100);
             if (newIndex < 0) newIndex = 0;
             if (newIndex > 2) newIndex = 2;
-            
             uiSwitchView(views[newIndex], newIndex);
         });
 
@@ -241,13 +485,12 @@
             const clickX = e.clientX - rect.left;
             const tabWidth = rect.width / 3;
             let newIndex = Math.floor(clickX / tabWidth);
-            
-            if(newIndex >= 0 && newIndex <= 2) {
+            if (newIndex >= 0 && newIndex <= 2) {
                 uiSwitchView(views[newIndex], newIndex);
             }
         });
 
-        // --- WISCH-GESTEN FÜR DIE TAGESANSICHT ---
+        // --- TAGESANSICHT WISCHGESTE ---
         const dayAnimator = document.getElementById('day-content-animator');
         let swipeStartX = 0;
         let swipeStartY = 0;
@@ -258,32 +501,24 @@
         }, { passive: true });
 
         dayAnimator.addEventListener('touchend', (e) => {
-            const swipeEndX = e.changedTouches[0].clientX;
-            const swipeEndY = e.changedTouches[0].clientY;
-            
-            const deltaX = swipeEndX - swipeStartX;
-            const deltaY = swipeEndY - swipeStartY;
-            
-            // Nur reagieren, wenn horizontal gewischt wurde (nicht beim vertikalen Scrollen)
+            const deltaX = e.changedTouches[0].clientX - swipeStartX;
+            const deltaY = e.changedTouches[0].clientY - swipeStartY;
             if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 40) {
                 if (deltaX < 0 && currentDayIndex < dates.length - 1) {
-                    changeDay(1); // Wisch nach links -> Nächster Tag
+                    changeDay(1);
                 } else if (deltaX > 0 && currentDayIndex > 0) {
-                    changeDay(-1); // Wisch nach rechts -> Vorheriger Tag
+                    changeDay(-1);
                 }
             }
         }, { passive: true });
 
-        // --- UI & UPDATES ---
+        // --- ANSICHTEN WECHSELN ---
         function uiSwitchView(viewId, index) {
             currentActiveView = viewId;
             currentIndex = index;
             pill.style.transform = `translateX(${index * 100}%)`;
             
-            const viewsElements = document.querySelectorAll('.main-view');
-            for(let i = 0; i < viewsElements.length; i++) {
-                viewsElements[i].classList.remove('active-view');
-            }
+            document.querySelectorAll('.main-view').forEach(v => v.classList.remove('active-view'));
             document.getElementById(`view-${viewId}`).classList.add('active-view');
             updateDynamicCounter(viewId);
         }
@@ -291,17 +526,17 @@
         function updateDynamicCounter(viewId) {
             const totalDisplay = document.getElementById('render-global-total');
             const label = document.getElementById('stats-label');
+            
             if (viewId === 'month') {
-                let sum = 0;
-                for (let date in logData) if (date.indexOf('2026-07') === 0) sum += logData[date].total_minutes;
-                totalDisplay.innerText = formatHours(sum);
-                label.innerText = "Arbeitszeit im Juli 2026";
+                if (activeMonthCard) {
+                    updateMonthHeader(activeMonthCard);
+                }
             } 
             else if (viewId === 'week') {
                 let sum = 0;
                 for (let date in logData) sum += logData[date].total_minutes;
                 totalDisplay.innerText = formatHours(sum);
-                label.innerText = "Gesamte Arbeitszeit der Woche";
+                label.innerText = "Gesamte protokollierte Arbeitszeit";
             } 
             else if (viewId === 'day') {
                 const dStr = dates[currentDayIndex];
@@ -316,20 +551,6 @@
             currentDayIndex = dates.indexOf(dateStr);
             renderDayView();
             uiSwitchView('day', 2);
-        }
-
-        function formatHours(minutes) {
-            const h = Math.floor(minutes / 60);
-            const m = Math.round(minutes % 60);
-            return h + "h " + m + "m";
-        }
-
-        function formatDayDate(dateString) {
-            const parts = dateString.split('-');
-            const d = new Date(parts[0], parts[1] - 1, parts[2]);
-            const days = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'];
-            const months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-            return days[d.getDay()] + " " + parts[2] + ". " + months[d.getMonth()];
         }
 
         function openLightbox(src) {
@@ -347,18 +568,18 @@
 
         function initWeekTimeline() {
             const wrapper = document.getElementById('week-rows-wrapper');
-            for(let i=0; i<dates.length; i++) {
+            wrapper.innerHTML = '';
+            for (let i = 0; i < dates.length; i++) {
                 const dateStr = dates[i];
                 const dayObj = logData[dateStr];
                 const row = document.createElement('div');
                 row.className = 'week-row';
-                
                 row.onclick = function() { forceDayView(dateStr); };
                 
                 let bars = '';
-                for(let j=0; j<dayObj.entries.length; j++) {
+                for (let j = 0; j < dayObj.entries.length; j++) {
                     const e = dayObj.entries[j];
-                    bars += '<div class="timeline-bar" style="left: ' + ((e.start_min/1440)*100) + '%; width: ' + ((e.duration/1440)*100) + '%;"></div>';
+                    bars += `<div class="timeline-bar" style="left: ${(e.start_min/1440)*100}%; width: ${(e.duration/1440)*100}%;"></div>`;
                 }
                 row.innerHTML = `<div class="week-row-meta"><span>${formatDayDate(dateStr)}</span><span>${formatHours(dayObj.total_minutes)}</span></div><div class="timeline-track">${bars}</div>`;
                 wrapper.appendChild(row);
@@ -366,7 +587,7 @@
         }
 
         function renderDayView() {
-            if(dates.length === 0) return;
+            if (dates.length === 0) return;
             const data = logData[dates[currentDayIndex]];
             document.getElementById('day-title').innerText = formatDayDate(dates[currentDayIndex]);
             
@@ -380,16 +601,15 @@
             document.getElementById('day-categories-wrapper').innerHTML = catHtml + '</div>';
 
             let entriesHtml = '';
-            for(let i=0; i<data.entries.length; i++) {
+            for (let i = 0; i < data.entries.length; i++) {
                 let e = data.entries[i];
                 entriesHtml += `<div class="entry-card"><div class="entry-card-header"><span>${e.category}</span><span>${e.start} - ${e.end}</span></div><div class="entry-card-desc">${e.desc}</div></div>`;
             }
             document.getElementById('day-entries-wrapper').innerHTML = entriesHtml;
             
-            const images = document.querySelectorAll('.log-img');
-            for(let i=0; i<images.length; i++) {
-                images[i].onclick = function() { openLightbox(this.src); };
-            }
+            document.querySelectorAll('.log-img').forEach(img => {
+                img.onclick = function() { openLightbox(this.src); };
+            });
 
             document.getElementById('btn-prev').disabled = currentDayIndex === 0;
             document.getElementById('btn-next').disabled = currentDayIndex === dates.length - 1;
@@ -397,23 +617,17 @@
 
         function changeDay(dir) {
             let nextIdx = currentDayIndex + dir;
-            if(nextIdx >= 0 && nextIdx < dates.length) { 
+            if (nextIdx >= 0 && nextIdx < dates.length) { 
                 currentDayIndex = nextIdx;
-                
-                // --- SMOOTHE WECHSEL-ANIMATION ---
                 const animator = document.getElementById('day-content-animator');
                 
-                // Setze auf transparent und schiebe in die Richtung des Wischens
                 animator.style.transition = 'none';
                 animator.style.opacity = '0';
                 animator.style.transform = dir > 0 ? 'translateX(30px)' : 'translateX(-30px)';
                 
-                // Kleiner Timer, damit der Browser die Änderungen oben anwendet, bevor er animiert
                 setTimeout(() => {
                     renderDayView();
                     updateDynamicCounter('day');
-                    
-                    // Weich hereingleiten lassen
                     animator.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease';
                     animator.style.transform = 'translateX(0)';
                     animator.style.opacity = '1';
@@ -421,6 +635,8 @@
             }
         }
 
+        // Start initialisieren
+        initMonthCalendar();
         initWeekTimeline();
         renderDayView();
     </script>
