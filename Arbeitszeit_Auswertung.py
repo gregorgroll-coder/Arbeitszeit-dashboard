@@ -25,12 +25,10 @@ def parse_markdown_log(filepath):
             date_str, start, end, category = parts[:4]
             desc = parts[4]
             
-            # Markdown Bilder umwandeln und klickbar machen
+            # Markdown Bilder umwandeln
             desc_html = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', r'<img src="\2" alt="\1" class="log-img" title="Zum Vergrößern klicken">', desc)
-            
-            # Fetten Text (**Text**) in edle Überschriften umwandeln
+            # Fetten Text (**Text**) umwandeln
             desc_html = re.sub(r'\*\*(.*?)\*\*', r'<strong style="color: var(--text-main); font-size: 12.5px;">\1</strong>', desc_html)
-            
             # Kursiven Text (*Text*) umwandeln
             desc_html = re.sub(r'\*(.*?)\*', r'<em>\1</em>', desc_html)
             
@@ -62,18 +60,6 @@ def parse_markdown_log(filepath):
 def generate_html_dashboard(data, global_total_minutes, output_file="index.html"):
     dates = list(data.keys())
     
-    month_sum = sum(day["total_minutes"] for date, day in data.items() if date.startswith("2026-07"))
-    initial_hours_str = f"{int(month_sum // 60)}h {int(month_sum % 60)}m"
-    initial_label = "Arbeitszeit im Juli 2026"
-
-    cal_html_ssr = ""
-    padding_cells = 2
-    for _ in range(padding_cells): cal_html_ssr += '<div class="cal-cell empty"></div>'
-    for d in range(1, 32):
-        match_str = f"2026-07-{d:02d}"
-        if match_str in data: cal_html_ssr += f'<div class="cal-cell has-work" onclick="forceDayView(\'{match_str}\')">{d}</div>'
-        else: cal_html_ssr += f'<div class="cal-cell">{d}</div>'
-
     json_data = json.dumps(data).replace("</", "<\\/")
     json_dates = json.dumps(dates).replace("</", "<\\/")
     
@@ -87,68 +73,108 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="apple-mobile-web-app-title" content="Work Log">
         
-        <meta name="theme-color" content="#5b9ff9">
-        
         <title>Arbeitszeit Cockpit</title>
         <style>
             :root {{ 
-                --text-main: #1d1d1f; 
-                --text-muted: #6e6e73; 
-                --glass-bg: rgba(255, 255, 255, 0.25);
-                --glass-border: rgba(255, 255, 255, 0.35);
+                --text-main: #0c0d0e; 
+                --text-muted: #56585d; 
+                
+                /* Echte Apple Glassmorphism Farbwerte */
+                --glass-panel-bg: rgba(255, 255, 255, 0.42);
+                --glass-card-bg: rgba(255, 255, 255, 0.38);
+                --glass-border-light: rgba(255, 255, 255, 0.7);
+                --glass-border-subtle: rgba(255, 255, 255, 0.4);
+                --apple-blue: #0071e3;
             }}
             
             * {{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }}
             
-            /* Natürliches Scrollverhalten wiederhergestellt */
-            html {{
-                background-color: #5b9ff9;
+            html, body {{
+                margin: 0; padding: 0;
+                min-height: 100dvh;
+                font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+                background-color: #0b1329;
+                display: flex; justify-content: center; align-items: center;
+                overflow-x: hidden;
             }}
-            
-            body {{ 
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; 
-                background: linear-gradient(135deg, #5b9ff9 0%, #7ee8fa 100%); 
-                margin: 0; padding: 0; 
-                min-height: 100dvh; 
-                display: flex; justify-content: center; align-items: center; 
+
+            /* --- VIVID APPLE AMBIENT BACKGROUND GLOW --- */
+            /* Diese diffusen Lichtquellen brechen sich im Glaspanel */
+            .ambient-background {{
+                position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                z-index: 0; overflow: hidden; pointer-events: none;
             }}
-            
+            .glow-orb {{
+                position: absolute; border-radius: 50%; filter: blur(75px); opacity: 0.7;
+                animation: floatOrb 18s ease-in-out infinite alternate;
+            }}
+            .orb-1 {{ width: 340px; height: 340px; background: #38bdf8; top: -50px; left: -80px; }}
+            .orb-2 {{ width: 380px; height: 380px; background: #6366f1; bottom: -60px; right: -70px; animation-duration: 22s; }}
+            .orb-3 {{ width: 280px; height: 280px; background: #a855f7; top: 35%; left: 25%; opacity: 0.45; }}
+
+            @keyframes floatOrb {{
+                0% {{ transform: translate(0, 0) scale(1); }}
+                50% {{ transform: translate(30px, 40px) scale(1.08); }}
+                100% {{ transform: translate(-20px, 25px) scale(0.95); }}
+            }}
+
+            /* --- APPLE LIQUID GLASS PANEL --- */
             .glass-panel {{
                 width: 100%; height: 100dvh; 
-                background: var(--glass-bg); 
-                backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px);
-                box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
-                border: 1px solid var(--glass-border);
+                background: var(--glass-panel-bg); 
+                /* Die magische Apple-Kombination: starker Blur + hohe Farbsättigung */
+                backdrop-filter: blur(40px) saturate(190%) contrast(102%) brightness(104%);
+                -webkit-backdrop-filter: blur(40px) saturate(190%) contrast(102%) brightness(104%);
+                
+                /* Lichtbrechende Kanten (Oben weißes Highlight, unten feiner Schatten) */
+                border: 1px solid var(--glass-border-subtle);
+                box-shadow: 
+                    0 25px 50px rgba(0, 0, 0, 0.2),
+                    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.75),
+                    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.05);
+
                 display: flex; flex-direction: column; position: relative; overflow: hidden; 
-                padding: max(env(safe-area-inset-top), 40px) 25px max(env(safe-area-inset-bottom), 20px) 25px; 
+                padding: max(env(safe-area-inset-top), 35px) 22px max(env(safe-area-inset-bottom), 20px) 22px; 
+                z-index: 1;
             }}
             
             @media (min-width: 550px) {{
                 .glass-panel {{
-                    height: 90vh; max-width: 480px; max-height: 880px;
-                    border-radius: 44px; padding-top: 30px; padding-bottom: 25px;
+                    height: 92vh; max-width: 460px; max-height: 890px;
+                    border-radius: 46px; padding: 30px 24px;
                 }}
             }}
             
-            .global-stats {{ text-align: center; margin-bottom: 15px; margin-top: 10px; flex-shrink: 0; }}
-            .global-hours {{ font-size: 46px; font-weight: 700; letter-spacing: -1.5px; color: var(--text-main); line-height: 1; }}
-            .global-label {{ font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.8px; }}
+            /* DYNAMISCHE KOPFZEILE */
+            .global-stats {{ text-align: center; margin-bottom: 16px; margin-top: 5px; flex-shrink: 0; }}
+            .global-hours {{ 
+                font-size: 48px; font-weight: 700; letter-spacing: -1.8px; 
+                color: var(--text-main); line-height: 1; 
+                transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+            }}
+            .global-label {{ 
+                font-size: 11.5px; color: var(--text-muted); font-weight: 600; 
+                margin-top: 8px; text-transform: uppercase; letter-spacing: 0.9px; 
+            }}
 
-            /* SCHIEBER */
+            /* SEGMENTED CONTROL (SCHIEBER) */
             .segmented-control {{ 
-                position: relative; display: flex; background: rgba(0, 0, 0, 0.05); 
-                border-radius: 14px; padding: 3px; margin-bottom: 20px; 
-                border: 0.5px solid rgba(255, 255, 255, 0.3); flex-shrink: 0; 
-                box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+                position: relative; display: flex; 
+                background: rgba(0, 0, 0, 0.06); 
+                border-radius: 14px; padding: 3px; margin-bottom: 18px; 
+                border: 1px solid rgba(255, 255, 255, 0.35); flex-shrink: 0; 
+                box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
                 touch-action: none; cursor: pointer;
             }}
             .control-btn {{ 
-                flex: 1; border: none; background: none; padding: 8px 0; font-size: 13px; font-weight: 600; color: var(--text-main); 
+                flex: 1; border: none; background: none; padding: 8px 0; 
+                font-size: 13px; font-weight: 600; color: var(--text-main); 
                 pointer-events: none; z-index: 2; 
             }}
             .slider-pill {{ 
                 position: absolute; top: 3px; left: 3px; width: calc(33.333% - 4px); height: calc(100% - 6px); 
-                background: rgba(255, 255, 255, 0.95); box-shadow: 0 3px 8px rgba(0,0,0,0.08); 
+                background: rgba(255, 255, 255, 0.92); 
+                box-shadow: 0 3px 10px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06); 
                 border-radius: 11px; z-index: 1; 
                 transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); 
             }}
@@ -161,53 +187,122 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             }}
             .main-view.active-view {{ opacity: 1; pointer-events: auto; transform: scale(1); }}
 
-            .entries-list, .week-list {{ flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 30px; }}
-
-            .calendar-grid {{ display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; background: rgba(255, 255, 255, 0.3); padding: 15px; border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 10px 20px rgba(0,0,0,0.02); }}
-            .cal-header {{ text-align: center; font-size: 10px; font-weight: 700; color: var(--text-muted); padding-bottom: 5px; }}
-            .cal-cell {{ aspect-ratio: 1; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: 500; color: var(--text-main); border-radius: 50%; }}
-            .cal-cell.has-work {{ background: rgba(37, 117, 252, 0.15); border: 1.5px solid rgba(37, 117, 252, 0.4); color: #004999; font-weight: 700; cursor: pointer; }}
-            .cal-cell.empty {{ opacity: 0.15; }}
-            .calendar-title {{ font-size: 18px; font-weight: 700; margin-bottom: 12px; padding-left: 5px; color: var(--text-main); }}
-
-            .week-row {{ background: rgba(255, 255, 255, 0.3); padding: 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.4); display: flex; flex-direction: column; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); cursor: pointer; transition: transform 0.15s ease, background 0.15s ease; margin-bottom: 12px; }}
-            .week-row:active {{ transform: scale(0.97); background: rgba(255, 255, 255, 0.5); }}
-            .week-row-meta {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--text-main); }}
-            .timeline-track {{ height: 18px; background: rgba(0, 0, 0, 0.04); border-radius: 6px; position: relative; overflow: hidden; }}
-            .timeline-bar {{ position: absolute; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 4px; }}
-            .timeline-labels {{ display: flex; justify-content: space-between; font-size: 9px; color: var(--text-muted); padding: 0 2px; }}
-
-            .day-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0; }}
-            .nav-btn {{ background: rgba(255, 255, 255, 0.45); border: 1px solid rgba(255,255,255,0.5); border-radius: 50%; width: 36px; height: 36px; font-size: 13px; cursor: pointer; display: flex; justify-content: center; align-items: center; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }}
-            .nav-btn:disabled {{ opacity: 0.2; cursor: default; }}
-            .day-date-title {{ font-size: 15px; font-weight: 600; }}
-            
-            /* Container für die weiche Wisch-Animation der Tagesansicht */
-            #day-content-animator {{
-                flex: 1; display: flex; flex-direction: column; overflow: hidden;
+            /* --- DYNAMISCHE MONATS-CONTAINER (VERTIKAL WISCHBAR) --- */
+            .month-scroll-container {{
+                flex: 1; overflow-y: auto; overflow-x: hidden;
+                -webkit-overflow-scrolling: touch;
+                scroll-snap-type: y mandatory;
+                padding-bottom: 40px;
+                display: flex; flex-direction: column; gap: 24px;
             }}
+            /* Dünne, unauffällige Scrollbar */
+            .month-scroll-container::-webkit-scrollbar {{ width: 4px; }}
+            .month-scroll-container::-webkit-scrollbar-thumb {{ background: rgba(0,0,0,0.15); border-radius: 4px; }}
+
+            .month-card {{
+                scroll-snap-align: center;
+                flex-shrink: 0;
+                background: var(--glass-card-bg);
+                border-radius: 24px;
+                padding: 16px;
+                border: 1px solid var(--glass-border-light);
+                box-shadow: 
+                    0 8px 24px rgba(0,0,0,0.04),
+                    inset 0 1px 1px rgba(255, 255, 255, 0.7);
+            }}
+            .month-header-row {{
+                display: flex; justify-content: space-between; align-items: baseline;
+                margin-bottom: 12px; padding: 0 4px;
+            }}
+            .month-title {{ font-size: 17px; font-weight: 700; color: var(--text-main); }}
+            .month-subtotal {{ font-size: 13px; font-weight: 600; color: var(--apple-blue); }}
+
+            .calendar-grid {{ 
+                display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; 
+            }}
+            .cal-header {{ 
+                text-align: center; font-size: 10px; font-weight: 700; color: var(--text-muted); padding-bottom: 6px; 
+            }}
+            .cal-cell {{ 
+                aspect-ratio: 1; display: flex; justify-content: center; align-items: center; 
+                font-size: 13.5px; font-weight: 500; color: var(--text-main); border-radius: 50%; 
+                transition: transform 0.15s ease, background 0.15s ease;
+            }}
+            .cal-cell.has-work {{ 
+                background: rgba(0, 113, 227, 0.16); 
+                border: 1.5px solid rgba(0, 113, 227, 0.5); 
+                color: var(--apple-blue); font-weight: 700; cursor: pointer; 
+                box-shadow: 0 2px 6px rgba(0, 113, 227, 0.12);
+            }}
+            .cal-cell.has-work:active {{ transform: scale(0.88); background: rgba(0, 113, 227, 0.3); }}
+            .cal-cell.empty {{ opacity: 0; pointer-events: none; }}
+
+            /* WOCHEN-ANSICHT */
+            .week-list, .entries-list {{ flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 30px; }}
+            .week-row {{ 
+                background: var(--glass-card-bg); padding: 12px 14px; border-radius: 18px; 
+                border: 1px solid var(--glass-border-light); display: flex; flex-direction: column; gap: 6px; 
+                box-shadow: 0 4px 12px rgba(0,0,0,0.03), inset 0 1px 1px rgba(255,255,255,0.6); 
+                cursor: pointer; transition: transform 0.15s ease; margin-bottom: 10px; 
+            }}
+            .week-row:active {{ transform: scale(0.97); }}
+            .week-row-meta {{ display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; color: var(--text-main); }}
+            .timeline-track {{ height: 16px; background: rgba(0, 0, 0, 0.05); border-radius: 6px; position: relative; overflow: hidden; }}
+            .timeline-bar {{ position: absolute; height: 100%; background: linear-gradient(90deg, #0071e3 0%, #4facfe 100%); border-radius: 4px; }}
+
+            /* TAGES-ANSICHT */
+            .day-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0; }}
+            .nav-btn {{ 
+                background: rgba(255, 255, 255, 0.5); border: 1px solid var(--glass-border-light); 
+                border-radius: 50%; width: 36px; height: 36px; font-size: 13px; cursor: pointer; 
+                display: flex; justify-content: center; align-items: center; flex-shrink: 0; 
+                box-shadow: 0 2px 6px rgba(0,0,0,0.04); transition: transform 0.1s ease;
+            }}
+            .nav-btn:active {{ transform: scale(0.9); }}
+            .nav-btn:disabled {{ opacity: 0.25; cursor: default; }}
+            .day-date-title {{ font-size: 15px; font-weight: 700; color: var(--text-main); }}
+            
+            #day-content-animator {{ flex: 1; display: flex; flex-direction: column; overflow: hidden; }}
 
             .category-bars {{ margin-bottom: 15px; flex-shrink: 0; }}
             .cat-row {{ display: flex; align-items: center; margin-bottom: 8px; }}
-            .cat-label {{ width: 80px; font-size: 12px; font-weight: 600; }}
-            .bar-bg {{ flex: 1; height: 10px; background: rgba(255, 255, 255, 0.4); border-radius: 5px; overflow: hidden; margin: 0 10px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); }}
-            .bar-fill {{ height: 100%; background: linear-gradient(90deg, #2575fc 0%, #6a11cb 100%); border-radius: 5px; }}
-            .cat-time {{ width: 50px; text-align: right; font-size: 11px; font-weight: 600; }}
+            .cat-label {{ width: 85px; font-size: 12px; font-weight: 600; color: var(--text-muted); }}
+            .bar-bg {{ flex: 1; height: 9px; background: rgba(0, 0, 0, 0.06); border-radius: 5px; overflow: hidden; margin: 0 10px; }}
+            .bar-fill {{ height: 100%; background: linear-gradient(90deg, #0071e3 0%, #6366f1 100%); border-radius: 5px; }}
+            .cat-time {{ width: 50px; text-align: right; font-size: 11.5px; font-weight: 700; color: var(--text-main); }}
             
-            .entry-card {{ background: rgba(255, 255, 255, 0.45); border-radius: 14px; padding: 12px 15px; margin-bottom: 10px; border: 1px solid rgba(255, 255, 255, 0.5); box-shadow: 0 4px 15px rgba(0,0,0,0.02); }}
-            .entry-card-header {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 8px; }}
-            .entry-card-desc {{ font-size: 12px; color: #2c2c2e; line-height: 1.5; }}
+            .entry-card {{ 
+                background: var(--glass-card-bg); border-radius: 16px; padding: 13px 15px; 
+                margin-bottom: 10px; border: 1px solid var(--glass-border-light); 
+                box-shadow: 0 4px 14px rgba(0,0,0,0.03), inset 0 1px 1px rgba(255,255,255,0.7); 
+            }}
+            .entry-card-header {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--apple-blue); }}
+            .entry-card-desc {{ font-size: 12.5px; color: var(--text-main); line-height: 1.5; }}
             
-            .log-img {{ max-width: 100%; height: auto; border-radius: 10px; margin-top: 10px; margin-bottom: 4px; border: 1px solid rgba(255,255,255,0.7); box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: block; cursor: zoom-in; transition: transform 0.2s; }}
-            .log-img:active {{ transform: scale(0.98); }}
+            .log-img {{ 
+                max-width: 100%; height: auto; border-radius: 10px; margin-top: 10px; 
+                border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+                display: block; cursor: zoom-in; 
+            }}
 
-            .lightbox {{ display: none; position: fixed; z-index: 9999; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); justify-content: center; align-items: center; opacity: 0; transition: opacity 0.25s ease; }}
+            /* LIGHTBOX */
+            .lightbox {{ 
+                display: none; position: fixed; z-index: 9999; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); 
+                justify-content: center; align-items: center; opacity: 0; transition: opacity 0.25s ease; 
+            }}
             .lightbox.active {{ opacity: 1; }}
-            .lightbox img {{ max-width: 95vw; max-height: 85vh; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1); }}
-            .lightbox.active img {{ transform: scale(1); }}
+            .lightbox img {{ max-width: 92vw; max-height: 85vh; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.4); }}
         </style>
     </head>
     <body>
+
+    <!-- Ambient Glowing Background Spheres -->
+    <div class="ambient-background">
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+        <div class="glow-orb orb-3"></div>
+    </div>
 
     <div class="lightbox" id="lightbox" onclick="closeLightbox()">
         <img id="lightbox-img" src="" alt="Vollbild">
@@ -215,8 +310,8 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
 
     <div class="glass-panel" id="main-panel">
         <div class="global-stats">
-            <div class="global-hours" id="render-global-total">{initial_hours_str}</div>
-            <div class="global-label" id="stats-label">{initial_label}</div>
+            <div class="global-hours" id="render-global-total">0h 0m</div>
+            <div class="global-label" id="stats-label">Arbeitszeit</div>
         </div>
 
         <div class="segmented-control" id="seg-control">
@@ -227,19 +322,17 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
         </div>
 
         <div class="view-container">
+            <!-- MONATS-ANSICHT: Scroll-Container für alle Monate -->
             <div class="main-view active-view" id="view-month">
-                <div class="calendar-title">Juli 2026</div>
-                <div class="calendar-grid" id="calendar-wrapper">
-                    <div class="cal-header">MO</div><div class="cal-header">DI</div><div class="cal-header">MI</div>
-                    <div class="cal-header">DO</div><div class="cal-header">FR</div><div class="cal-header">SA</div><div class="cal-header">SO</div>
-                    {cal_html_ssr}
-                </div>
+                <div class="month-scroll-container" id="month-carousel"></div>
             </div>
 
+            <!-- WOCHEN-ANSICHT -->
             <div class="main-view" id="view-week">
                 <div class="week-list" id="week-rows-wrapper"></div>
             </div>
 
+            <!-- TAGES-ANSICHT -->
             <div class="main-view" id="view-day">
                 <div class="day-header">
                     <button class="nav-btn" id="btn-prev" onclick="changeDay(-1)">&#10094;</button>
@@ -258,7 +351,7 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
     <script>
         const logData = {json_data};
         const dates = {json_dates};
-        let currentDayIndex = dates.length - 1; 
+        let currentDayIndex = dates.length > 0 ? dates.length - 1 : 0; 
         
         const views = ['month', 'week', 'day'];
         let currentActiveView = 'month'; 
@@ -266,8 +359,154 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
 
         const segControl = document.getElementById('seg-control');
         const pill = document.getElementById('pill');
+        const monthCarousel = document.getElementById('month-carousel');
         
-        // --- DRAG & DROP LOGIK ---
+        let activeMonthCard = null;
+
+        const monthNames = [
+            'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+            'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
+        ];
+
+        // --- HILFSFUNKTIONEN ---
+        function formatHours(minutes) {{
+            const h = Math.floor(minutes / 60);
+            const m = Math.round(minutes % 60);
+            return h + "h " + m + "m";
+        }}
+
+        function formatDayDate(dateString) {{
+            const parts = dateString.split('-');
+            const d = new Date(parts[0], parts[1] - 1, parts[2]);
+            const days = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'];
+            return days[d.getDay()] + " " + parseInt(parts[2], 10) + ". " + monthNames[d.getMonth()];
+        }}
+
+        // --- MONATSKALENDER DYNAMISCH GENERIEREN ---
+        function getMonthRange() {{
+            if (dates.length === 0) return [];
+            const first = dates[0].split('-');
+            const last = dates[dates.length - 1].split('-');
+            
+            let curYear = parseInt(first[0], 10);
+            let curMonth = parseInt(first[1], 10);
+            const endYear = parseInt(last[0], 10);
+            const endMonth = parseInt(last[1], 10);
+            
+            const list = [];
+            while (curYear < endYear || (curYear === endYear && curMonth <= endMonth)) {{
+                list.push({{
+                    year: curYear,
+                    month: curMonth,
+                    key: `${{curYear}}-${{String(curMonth).padStart(2, '0')}}`
+                }});
+                curMonth++;
+                if (curMonth > 12) {{
+                    curMonth = 1;
+                    curYear++;
+                }}
+            }}
+            return list;
+        }}
+
+        function initMonthCalendar() {{
+            monthCarousel.innerHTML = '';
+            const months = getMonthRange();
+            
+            months.forEach(m => {{
+                let monthTotal = 0;
+                for (const d in logData) {{
+                    if (d.startsWith(m.key)) monthTotal += logData[d].total_minutes;
+                }}
+
+                const card = document.createElement('div');
+                card.className = 'month-card';
+                card.dataset.monthKey = m.key;
+                card.dataset.monthName = `${{monthNames[m.month - 1]}} ${{m.year}}`;
+                card.dataset.totalMins = monthTotal;
+
+                const daysInMonth = new Date(m.year, m.month, 0).getDate();
+                // 1. Wochentag im Monat (Montag = 0, ..., Sonntag = 6)
+                const firstDayWeekday = (new Date(m.year, m.month - 1, 1).getDay() + 6) % 7;
+
+                let gridHtml = `
+                    <div class="month-header-row">
+                        <div class="month-title">${{monthNames[m.month - 1]}} ${{m.year}}</div>
+                        <div class="month-subtotal">${{formatHours(monthTotal)}}</div>
+                    </div>
+                    <div class="calendar-grid">
+                        <div class="cal-header">MO</div><div class="cal-header">DI</div><div class="cal-header">MI</div>
+                        <div class="cal-header">DO</div><div class="cal-header">FR</div><div class="cal-header">SA</div><div class="cal-header">SO</div>
+                `;
+
+                // Leerzellen vor dem 1. Tag
+                for (let i = 0; i < firstDayWeekday; i++) {{
+                    gridHtml += '<div class="cal-cell empty"></div>';
+                }}
+
+                // Tage 1 bis N
+                for (let d = 1; d <= daysInMonth; d++) {{
+                    const dateStr = `${{m.key}}-${{String(d).padStart(2, '0')}}`;
+                    if (dateStr in logData) {{
+                        gridHtml += `<div class="cal-cell has-work" onclick="forceDayView('${{dateStr}}')">${{d}}</div>`;
+                    }} else {{
+                        gridHtml += `<div class="cal-cell">${{d}}</div>`;
+                    }}
+                }}
+                gridHtml += '</div>';
+                card.innerHTML = gridHtml;
+                monthCarousel.appendChild(card);
+            }});
+
+            // Standardmäßig zum letzten Monat scrollen (z. B. neuester Monat)
+            const cards = monthCarousel.querySelectorAll('.month-card');
+            if (cards.length > 0) {{
+                const targetCard = cards[cards.length - 1];
+                activeMonthCard = targetCard;
+                setTimeout(() => {{
+                    targetCard.scrollIntoView({{ behavior: 'auto', block: 'center' }});
+                    updateMonthHeader(targetCard);
+                }}, 60);
+            }}
+        }}
+
+        // --- HEADER JE NACH ZENTRIERTEM MONAT AKTUALISIEREN ---
+        function updateMonthHeader(card) {{
+            if (!card) return;
+            const totalMins = parseInt(card.dataset.totalMins || '0', 10);
+            document.getElementById('render-global-total').innerText = formatHours(totalMins);
+            document.getElementById('stats-label').innerText = `Arbeitszeit im ${{card.dataset.monthName}}`;
+        }}
+
+        // Erkennt in Echtzeit beim Scrollen den Monat in der Mitte des Bildschirms
+        monthCarousel.addEventListener('scroll', () => {{
+            if (currentActiveView !== 'month') return;
+            
+            const cards = monthCarousel.querySelectorAll('.month-card');
+            const containerRect = monthCarousel.getBoundingClientRect();
+            const containerCenter = containerRect.top + containerRect.height / 2;
+
+            let closestCard = null;
+            let minDistance = Infinity;
+
+            cards.forEach(card => {{
+                const cardRect = card.getBoundingClientRect();
+                const cardCenter = cardRect.top + cardRect.height / 2;
+                const dist = Math.abs(containerCenter - cardCenter);
+
+                if (dist < minDistance) {{
+                    minDistance = dist;
+                    closestCard = card;
+                }}
+            }});
+
+            if (closestCard && closestCard !== activeMonthCard) {{
+                activeMonthCard = closestCard;
+                updateMonthHeader(closestCard);
+            }}
+        }}, {{ passive: true }});
+
+        // --- GESTEN & SEGMENTED CONTROL ---
         let isDragging = false;
         let startTouchX = 0;
         let initialPercent = 0;
@@ -282,36 +521,27 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
         segControl.addEventListener('touchmove', (e) => {{
             if (!isDragging) return;
             e.preventDefault(); 
-            
             const deltaX = e.touches[0].clientX - startTouchX;
             const deltaPercent = (deltaX / pill.offsetWidth) * 100;
             let newPercent = initialPercent + deltaPercent;
-            
             if (newPercent < 0) newPercent = 0;
             if (newPercent > 200) newPercent = 200;
-            
             pill.style.transform = `translateX(${{newPercent}}%)`;
         }}, {{ passive: false }});
 
         segControl.addEventListener('touchend', (e) => {{
             if (!isDragging) return;
             isDragging = false;
-            
             pill.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
-            
             const deltaX = e.changedTouches[0].clientX - startTouchX;
             if (Math.abs(deltaX) < 5) {{
                 pill.style.transform = `translateX(${{currentIndex * 100}}%)`;
                 return;
             }}
-            
             const deltaPercent = (deltaX / pill.offsetWidth) * 100;
-            let newPercent = initialPercent + deltaPercent;
-            let newIndex = Math.round(newPercent / 100);
-            
+            let newIndex = Math.round((initialPercent + deltaPercent) / 100);
             if (newIndex < 0) newIndex = 0;
             if (newIndex > 2) newIndex = 2;
-            
             uiSwitchView(views[newIndex], newIndex);
         }});
 
@@ -320,13 +550,12 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             const clickX = e.clientX - rect.left;
             const tabWidth = rect.width / 3;
             let newIndex = Math.floor(clickX / tabWidth);
-            
-            if(newIndex >= 0 && newIndex <= 2) {{
+            if (newIndex >= 0 && newIndex <= 2) {{
                 uiSwitchView(views[newIndex], newIndex);
             }}
         }});
 
-        // --- WISCH-GESTEN FÜR DIE TAGESANSICHT ---
+        // --- TAGESANSICHT WISCHGESTE ---
         const dayAnimator = document.getElementById('day-content-animator');
         let swipeStartX = 0;
         let swipeStartY = 0;
@@ -337,32 +566,24 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
         }}, {{ passive: true }});
 
         dayAnimator.addEventListener('touchend', (e) => {{
-            const swipeEndX = e.changedTouches[0].clientX;
-            const swipeEndY = e.changedTouches[0].clientY;
-            
-            const deltaX = swipeEndX - swipeStartX;
-            const deltaY = swipeEndY - swipeStartY;
-            
-            // Nur reagieren, wenn horizontal gewischt wurde (nicht beim vertikalen Scrollen)
+            const deltaX = e.changedTouches[0].clientX - swipeStartX;
+            const deltaY = e.changedTouches[0].clientY - swipeStartY;
             if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 40) {{
                 if (deltaX < 0 && currentDayIndex < dates.length - 1) {{
-                    changeDay(1); // Wisch nach links -> Nächster Tag
+                    changeDay(1);
                 }} else if (deltaX > 0 && currentDayIndex > 0) {{
-                    changeDay(-1); // Wisch nach rechts -> Vorheriger Tag
+                    changeDay(-1);
                 }}
             }}
         }}, {{ passive: true }});
 
-        // --- UI & UPDATES ---
+        // --- ANSICHTEN WECHSELN ---
         function uiSwitchView(viewId, index) {{
             currentActiveView = viewId;
             currentIndex = index;
             pill.style.transform = `translateX(${{index * 100}}%)`;
             
-            const viewsElements = document.querySelectorAll('.main-view');
-            for(let i = 0; i < viewsElements.length; i++) {{
-                viewsElements[i].classList.remove('active-view');
-            }}
+            document.querySelectorAll('.main-view').forEach(v => v.classList.remove('active-view'));
             document.getElementById(`view-${{viewId}}`).classList.add('active-view');
             updateDynamicCounter(viewId);
         }}
@@ -370,17 +591,17 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
         function updateDynamicCounter(viewId) {{
             const totalDisplay = document.getElementById('render-global-total');
             const label = document.getElementById('stats-label');
+            
             if (viewId === 'month') {{
-                let sum = 0;
-                for (let date in logData) if (date.indexOf('2026-07') === 0) sum += logData[date].total_minutes;
-                totalDisplay.innerText = formatHours(sum);
-                label.innerText = "Arbeitszeit im Juli 2026";
+                if (activeMonthCard) {{
+                    updateMonthHeader(activeMonthCard);
+                }}
             }} 
             else if (viewId === 'week') {{
                 let sum = 0;
                 for (let date in logData) sum += logData[date].total_minutes;
                 totalDisplay.innerText = formatHours(sum);
-                label.innerText = "Gesamte Arbeitszeit der Woche";
+                label.innerText = "Gesamte protokollierte Arbeitszeit";
             }} 
             else if (viewId === 'day') {{
                 const dStr = dates[currentDayIndex];
@@ -395,20 +616,6 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             currentDayIndex = dates.indexOf(dateStr);
             renderDayView();
             uiSwitchView('day', 2);
-        }}
-
-        function formatHours(minutes) {{
-            const h = Math.floor(minutes / 60);
-            const m = Math.round(minutes % 60);
-            return h + "h " + m + "m";
-        }}
-
-        function formatDayDate(dateString) {{
-            const parts = dateString.split('-');
-            const d = new Date(parts[0], parts[1] - 1, parts[2]);
-            const days = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'];
-            const months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-            return days[d.getDay()] + " " + parts[2] + ". " + months[d.getMonth()];
         }}
 
         function openLightbox(src) {{
@@ -426,18 +633,18 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
 
         function initWeekTimeline() {{
             const wrapper = document.getElementById('week-rows-wrapper');
-            for(let i=0; i<dates.length; i++) {{
+            wrapper.innerHTML = '';
+            for (let i = 0; i < dates.length; i++) {{
                 const dateStr = dates[i];
                 const dayObj = logData[dateStr];
                 const row = document.createElement('div');
                 row.className = 'week-row';
-                
                 row.onclick = function() {{ forceDayView(dateStr); }};
                 
                 let bars = '';
-                for(let j=0; j<dayObj.entries.length; j++) {{
+                for (let j = 0; j < dayObj.entries.length; j++) {{
                     const e = dayObj.entries[j];
-                    bars += '<div class="timeline-bar" style="left: ' + ((e.start_min/1440)*100) + '%; width: ' + ((e.duration/1440)*100) + '%;"></div>';
+                    bars += `<div class="timeline-bar" style="left: ${{(e.start_min/1440)*100}}%; width: ${{(e.duration/1440)*100}}%;"></div>`;
                 }}
                 row.innerHTML = `<div class="week-row-meta"><span>${{formatDayDate(dateStr)}}</span><span>${{formatHours(dayObj.total_minutes)}}</span></div><div class="timeline-track">${{bars}}</div>`;
                 wrapper.appendChild(row);
@@ -445,7 +652,7 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
         }}
 
         function renderDayView() {{
-            if(dates.length === 0) return;
+            if (dates.length === 0) return;
             const data = logData[dates[currentDayIndex]];
             document.getElementById('day-title').innerText = formatDayDate(dates[currentDayIndex]);
             
@@ -459,16 +666,15 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             document.getElementById('day-categories-wrapper').innerHTML = catHtml + '</div>';
 
             let entriesHtml = '';
-            for(let i=0; i<data.entries.length; i++) {{
+            for (let i = 0; i < data.entries.length; i++) {{
                 let e = data.entries[i];
                 entriesHtml += `<div class="entry-card"><div class="entry-card-header"><span>${{e.category}}</span><span>${{e.start}} - ${{e.end}}</span></div><div class="entry-card-desc">${{e.desc}}</div></div>`;
             }}
             document.getElementById('day-entries-wrapper').innerHTML = entriesHtml;
             
-            const images = document.querySelectorAll('.log-img');
-            for(let i=0; i<images.length; i++) {{
-                images[i].onclick = function() {{ openLightbox(this.src); }};
-            }}
+            document.querySelectorAll('.log-img').forEach(img => {{
+                img.onclick = function() {{ openLightbox(this.src); }};
+            }});
 
             document.getElementById('btn-prev').disabled = currentDayIndex === 0;
             document.getElementById('btn-next').disabled = currentDayIndex === dates.length - 1;
@@ -476,23 +682,17 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
 
         function changeDay(dir) {{
             let nextIdx = currentDayIndex + dir;
-            if(nextIdx >= 0 && nextIdx < dates.length) {{ 
+            if (nextIdx >= 0 && nextIdx < dates.length) {{ 
                 currentDayIndex = nextIdx;
-                
-                // --- SMOOTHE WECHSEL-ANIMATION ---
                 const animator = document.getElementById('day-content-animator');
                 
-                // Setze auf transparent und schiebe in die Richtung des Wischens
                 animator.style.transition = 'none';
                 animator.style.opacity = '0';
                 animator.style.transform = dir > 0 ? 'translateX(30px)' : 'translateX(-30px)';
                 
-                // Kleiner Timer, damit der Browser die Änderungen oben anwendet, bevor er animiert
                 setTimeout(() => {{
                     renderDayView();
                     updateDynamicCounter('day');
-                    
-                    // Weich hereingleiten lassen
                     animator.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease';
                     animator.style.transform = 'translateX(0)';
                     animator.style.opacity = '1';
@@ -500,6 +700,8 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             }}
         }}
 
+        // Start initialisieren
+        initMonthCalendar();
         initWeekTimeline();
         renderDayView();
     </script>
