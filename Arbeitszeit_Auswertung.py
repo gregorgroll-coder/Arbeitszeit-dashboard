@@ -64,6 +64,9 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
     dates = list(data.keys())
     month_names_de = ['', 'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
 
+    initial_hours_str = f"{int(global_total_minutes // 60)}h {int(global_total_minutes % 60)}m"
+    initial_label = "Gesamte Arbeitszeit"
+
     months_html = ""
     if dates:
         start_dt = datetime.strptime(dates[0], "%Y-%m-%d")
@@ -73,13 +76,6 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
         cur_m = start_dt.month
         end_y = end_dt.year
         end_m = end_dt.month
-        
-        # Erster Monat für die anfängliche Anzeige oben
-        first_month_key = f"{cur_y}-{cur_m:02d}"
-        first_month_name = f"{month_names_de[cur_m]} {cur_y}"
-        first_month_mins = sum(day["total_minutes"] for dt_str, day in data.items() if dt_str.startswith(first_month_key))
-        initial_hours_str = f"{int(first_month_mins // 60)}h {int(first_month_mins % 60)}m"
-        initial_label = f"Arbeitszeit im {first_month_name}"
 
         # Alle Monate im Zeitraum generieren
         while cur_y < end_y or (cur_y == end_y and cur_m <= end_m):
@@ -89,7 +85,6 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             m_hours_str = f"{int(m_mins // 60)}h {int(m_mins % 60)}m"
             
             first_weekday, num_days = calendar.monthrange(cur_y, cur_m)
-            # first_weekday: Montag ist 0, Sonntag ist 6
             
             grid_cells = ""
             for _ in range(first_weekday):
@@ -102,7 +97,7 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
                     grid_cells += f'<div class="cal-cell">{d}</div>'
             
             months_html += f"""
-                <div class="month-section" data-month-key="{m_key}" data-month-title="{m_name}" data-total-minutes="{int(m_mins)}">
+                <div class="month-section">
                     <div class="month-header-row">
                         <div class="calendar-title">{m_name}</div>
                         <div class="month-hours-badge">{m_hours_str}</div>
@@ -119,9 +114,6 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             if cur_m > 12:
                 cur_m = 1
                 cur_y += 1
-    else:
-        initial_hours_str = "0h 0m"
-        initial_label = "Keine Daten"
 
     json_data = json.dumps(data).replace("</", "<\\/")
     json_dates = json.dumps(dates).replace("</", "<\\/")
@@ -149,7 +141,7 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             
             * {{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }}
             
-            /* Natürliches Scrollverhalten wiederhergestellt */
+            /* Natürliches Scrollverhalten */
             html {{
                 background-color: #5b9ff9;
             }}
@@ -241,7 +233,7 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             .nav-btn:disabled {{ opacity: 0.2; cursor: default; }}
             .day-date-title {{ font-size: 15px; font-weight: 600; }}
             
-            /* Container für die weiche Wisch-Animation der Tagesansicht */
+            /* Container für die weiche Wisch-Animation der Inhaltsansicht */
             #day-content-animator {{
                 flex: 1; display: flex; flex-direction: column; overflow: hidden;
             }}
@@ -281,22 +273,25 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
         <div class="segmented-control" id="seg-control">
             <div class="slider-pill" id="pill"></div>
             <button class="control-btn">Monat</button>
-            <button class="control-btn">Woche</button>
             <button class="control-btn">Tag</button>
+            <button class="control-btn">Inhalt</button>
         </div>
 
         <div class="view-container">
+            <!-- ANSICHT 1: MONAT -->
             <div class="main-view active-view" id="view-month">
                 <div class="month-list" id="month-list-wrapper">
                     {months_html}
                 </div>
             </div>
 
-            <div class="main-view" id="view-week">
+            <!-- ANSICHT 2: TAG (ehemals Woche) -->
+            <div class="main-view" id="view-day">
                 <div class="week-list" id="week-rows-wrapper"></div>
             </div>
 
-            <div class="main-view" id="view-day">
+            <!-- ANSICHT 3: INHALT (ehemals Tag) -->
+            <div class="main-view" id="view-content">
                 <div class="day-header">
                     <button class="nav-btn" id="btn-prev" onclick="changeDay(-1)">&#10094;</button>
                     <div class="day-date-title" id="day-title">Datum</div>
@@ -316,50 +311,18 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
         const dates = {json_dates};
         let currentDayIndex = dates.length > 0 ? dates.length - 1 : 0; 
         
-        const views = ['month', 'week', 'day'];
+        // Berechnung der Gesamtarbeitszeit aller Tage
+        let totalGlobalMinutes = 0;
+        for (let d in logData) {{
+            totalGlobalMinutes += logData[d].total_minutes;
+        }}
+        
+        const views = ['month', 'day', 'content'];
         let currentActiveView = 'month'; 
         let currentIndex = 0;
 
         const segControl = document.getElementById('seg-control');
         const pill = document.getElementById('pill');
-        const monthList = document.getElementById('month-list-wrapper');
-        let currentTopMonthKey = null;
-
-        // --- ERKENNUNG DES MONATS GANZ OBEN BEIM SCROLLEN ---
-        function updateTopMonthOnScroll() {{
-            if (currentActiveView !== 'month' || !monthList) return;
-            const sections = monthList.querySelectorAll('.month-section');
-            if (sections.length === 0) return;
-            
-            const containerTop = monthList.getBoundingClientRect().top;
-            let topSection = null;
-            
-            for (let i = 0; i < sections.length; i++) {{
-                const rect = sections[i].getBoundingClientRect();
-                // Die erste Sektion, deren unterer Rand noch deutlich im Sichtbereich liegt (+45px Puffer),
-                // ist der Monat, der aktuell ganz oben zu sehen ist.
-                if (rect.bottom > containerTop + 45) {{
-                    topSection = sections[i];
-                    break;
-                }}
-            }}
-            
-            if (!topSection) topSection = sections[sections.length - 1];
-            
-            const monthKey = topSection.dataset.monthKey;
-            if (monthKey !== currentTopMonthKey) {{
-                currentTopMonthKey = monthKey;
-                const totalMinutes = parseInt(topSection.dataset.totalMinutes, 10) || 0;
-                const monthTitle = topSection.dataset.monthTitle;
-                
-                document.getElementById('render-global-total').innerText = formatHours(totalMinutes);
-                document.getElementById('stats-label').innerText = "Arbeitszeit im " + monthTitle;
-            }}
-        }}
-
-        if (monthList) {{
-            monthList.addEventListener('scroll', updateTopMonthOnScroll, {{ passive: true }});
-        }}
 
         // --- DRAG & DROP LOGIK ---
         let isDragging = false;
@@ -420,7 +383,7 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
             }}
         }});
 
-        // --- WISCH-GESTEN FÜR DIE TAGESANSICHT ---
+        // --- WISCH-GESTEN FÜR DIE INHALTS-ANSICHT ---
         const dayAnimator = document.getElementById('day-content-animator');
         let swipeStartX = 0;
         let swipeStartY = 0;
@@ -463,17 +426,14 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
         function updateDynamicCounter(viewId) {{
             const totalDisplay = document.getElementById('render-global-total');
             const label = document.getElementById('stats-label');
-            if (viewId === 'month') {{
-                currentTopMonthKey = null;
-                updateTopMonthOnScroll();
+            
+            // Ansichten "Monat" und "Tag": Gesamte Arbeitszeit
+            if (viewId === 'month' || viewId === 'day') {{
+                totalDisplay.innerText = formatHours(totalGlobalMinutes);
+                label.innerText = "Gesamte Arbeitszeit";
             }} 
-            else if (viewId === 'week') {{
-                let sum = 0;
-                for (let date in logData) sum += logData[date].total_minutes;
-                totalDisplay.innerText = formatHours(sum);
-                label.innerText = "Gesamte Arbeitszeit der Woche";
-            }} 
-            else if (viewId === 'day') {{
+            // Ansicht "Inhalt": Arbeitszeit des aktuellen Tages
+            else if (viewId === 'content') {{
                 const dStr = dates[currentDayIndex];
                 if (dStr && logData[dStr]) {{
                     totalDisplay.innerText = formatHours(logData[dStr].total_minutes);
@@ -485,7 +445,7 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
         function forceDayView(dateStr) {{
             currentDayIndex = dates.indexOf(dateStr);
             renderDayView();
-            uiSwitchView('day', 2);
+            uiSwitchView('content', 2);
         }}
 
         function formatHours(minutes) {{
@@ -524,6 +484,7 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
                 const row = document.createElement('div');
                 row.className = 'week-row';
                 
+                // Klick führt direkt zur Inhaltsansicht dieses Tages
                 row.onclick = function() {{ forceDayView(dateStr); }};
                 
                 let bars = '';
@@ -578,7 +539,7 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
                 
                 setTimeout(() => {{
                     renderDayView();
-                    updateDynamicCounter('day');
+                    updateDynamicCounter('content');
                     
                     animator.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease';
                     animator.style.transform = 'translateX(0)';
@@ -589,7 +550,7 @@ def generate_html_dashboard(data, global_total_minutes, output_file="index.html"
 
         initWeekTimeline();
         renderDayView();
-        updateTopMonthOnScroll();
+        updateDynamicCounter('month');
     </script>
     </body>
     </html>
