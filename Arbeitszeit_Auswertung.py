@@ -18,11 +18,13 @@ def parse_markdown_log(filepath):
 
     for line in lines:
         line = line.strip()
-        if not line.startswith('|') or 'Datum' in line or '---' in line:
+        # NACHHER:
+        if not line.startswith('|') or '---' in line:
             continue
-        
+
         parts = [p.strip() for p in line.split('|')][1:-1]
-        if len(parts) >= 5:
+        if len(parts) >= 5 and parts[0].lower() != 'datum':
+           
             date_str, start, end, category = parts[:4]
             desc = parts[4]
             
